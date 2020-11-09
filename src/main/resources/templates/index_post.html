@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Huffman Compression</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="../static/css/bootstrap.css" rel="stylesheet" th:href="@{/css/bootstrap.css}"/>
+</head>
+<body>
+<form th:action="@{/}" method="post" th:object="${huffmanForm}">
+    <div class="container">
+        <div class="row">
+            <label>Tekst:</label>
+            <textarea style="width: 100%; height: auto; font-size: 15px; background-color: lightblue" th:field="*{inputText}" th:rows="5"/>
+            <br/><br/>
+            <input type="submit" ajax="false" th:value="Kompresuj"/>
+        </div>
+        <div class="row">
+            <div class="col-6" style="padding-left: 0; margin-left: 0">
+                <label>Model źródła danych:</label>
+                <textarea style="width: 100%; line-height: 90%; font-size: 14px" th:text="*{inputModel}"
+                          readonly="true"
+                          rows="20"/>
+            </div>
+            <div class="col-6" style="padding-right: 0; margin-right: 0">
+                <label>Tabela kodowania (<span th:text="*{codingTableLength}"/> bitów):</label>
+                <textarea style="width: 100%; line-height: 90%; font-size: 14px" th:text="*{codingTable}"
+                          readonly="true"
+                          rows="20"/>
+            </div>
+        </div>
+        <div class="row">
+            <label>Tekst binarnie przed kompresją (<span th:text="*{uncompressedTextLength}"/> bitów):</label>
+            <textarea style="width: 100%; height: auto; font-size: 12px" th:text="*{uncompressedText}" readonly="true"
+                      rows="10"/>
+        </div>
+        <div class="row">
+            <label>Drzewo Huffmana:</label>
+            <br/>
+            <img style="width: 100%" th:src="@{{treeGraphPath}(treeGraphPath=*{treeGraphPath})}" alt="Tree Graph" >
+        </div>
+        <div class="row">
+            <label>Tekst binarnie po kompresji (<span th:text="*{compressedTextLength}"/> bitów):</label>
+            <textarea style="width: 100%; height: auto; font-size: 12px" th:text="*{compressedText}" readonly="true"
+                      rows="10"/>
+        </div>
+        <div class="row">
+            <label>Łączna długość skompresowanego tekstu: <b><span th:text="*{totalCompressedLength}"/></b></label>
+        </div>
+        <div class="row">
+            <label>Współczynnik kompresji: <b><span th:text="*{compressionRatio}"/></b></label>
+        </div>
+    </div>
+</form>
+</div>
+</body>
+</html>

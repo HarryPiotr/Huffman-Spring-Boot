@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Huffman Compression</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="../static/css/bootstrap.css" rel="stylesheet" th:href="@{/css/bootstrap.css}"/>
+</head>
+<body>
+<form th:action="@{/}" method="post" th:object="${huffmanForm}">
+    <div class="container">
+        <div class="row">
+            <label>Tekst:</label>
+            <textarea style="width: 100%; height: auto; font-size: 15px; background-color: lightblue" th:field="*{inputText}" th:rows="5"/>
+            <br/><br/>
+            <input type="submit" ajax="false" th:value="Kompresuj"/>
+        </div>
+    </div>
+</form>
+</div>
+</body>
+</html>
