@@ -1,22 +1,20 @@
 package springboot.formobjects;
 
-import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
-import com.mxgraph.layout.mxCircleLayout;
 import com.mxgraph.layout.mxCompactTreeLayout;
 import com.mxgraph.layout.mxIGraphLayout;
 import com.mxgraph.util.mxCellRenderer;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleGraph;
+import org.springframework.beans.factory.annotation.Autowired;
+import springboot.CloudTools;
 import tools.*;
 
 import javax.imageio.ImageIO;
+import javax.servlet.ServletContext;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 
 public class HuffmanForm {
@@ -52,7 +50,10 @@ public class HuffmanForm {
         StringBuilder im = new StringBuilder();
 
         for(Node n : nodes) {
-            im.append(n.getSymbol() + ":" + n.getOccurrences() + "\n");
+            im.append(n.getSymbol());
+            im.append(":");
+            im.append(n.getOccurrences());
+            im.append("\n");
         }
 
         inputModel = im.toString();
@@ -78,27 +79,26 @@ public class HuffmanForm {
 
     }
 
-    public void generateTreeGraph(String sessionId) {
+    public void generateTreeGraph(String fileID) {
 
         treeRoot = Huffman.buildTree(nodes);
         Graph<String, BinaryTreeEdge> g = Huffman.generateTreeGraph(treeRoot);
 
-        JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<String, BinaryTreeEdge>(g);
+        JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<>(g);
         mxIGraphLayout layout = new mxCompactTreeLayout(graphAdapter, false, false);
         layout.execute(graphAdapter.getDefaultParent());
 
         BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 2, Color.WHITE, true, null);
-        String absolutePath = "src/main/resources/static/tree_graphs/" + sessionId + ".png";
-        this.treeGraphPath = "tree_graphs/" + sessionId + ".png";
-        File imgFile = new File(absolutePath);
+        String absolutePath = fileID + ".png";
+        this.treeGraphPath = "https://storage.cloud.google.com/eu.artifacts.secret-walker-295314.appspot.com/tree_graphs/" + fileID + ".png";
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
-            ImageIO.write(image, "PNG", imgFile);
+            ImageIO.write(image, "PNG", os);
         }
         catch(IOException e) {
-            //TODO: Handle IOException
-            this.treeGraphPath = "";
+            e.printStackTrace();
         }
-
+        CloudTools.uploadFile(os, absolutePath);
     }
 
     public void generateCodingTable() {
