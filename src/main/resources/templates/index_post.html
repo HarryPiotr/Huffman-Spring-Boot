@@ -1,56 +1,66 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Huffman Compression</title>
+    <title>Text Compression</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <link href="../static/css/bootstrap.css" rel="stylesheet" th:href="@{/css/bootstrap.css}"/>
+    <link href="../static/bootstrap/css/bootstrap.css" rel="stylesheet" th:href="@{/bootstrap/css/bootstrap.css}"/>
+    <link rel="stylesheet" href="../static/css/own.css" th:href="@{/css/own.css}">
 </head>
 <body>
-<form th:action="@{/}" method="post" th:object="${huffmanForm}">
+<nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark">
+    <ul class="navbar-nav">
+        <li class="nav-item active"><a class="nav-link" href="/">Text Compression</a></li>
+        <li class="nav-item"><a class="nav-link" href="text_decompression.html">Text Decompression</a></li>
+        <li class="nav-item"><a class="nav-link" href="file_compression.html">File Compression</a></li>
+        <li class="nav-item"><a class="nav-link" href="file_decompression.html">File Decompression</a></li>
+    </ul>
+</nav>
+<form th:action="@{/index}" method="post" th:object="${huffmanTextCodingForm}">
     <div class="container">
-        <div class="row">
+        <div class="row top">
             <label>Tekst:</label>
-            <textarea style="width: 100%; height: auto; font-size: 15px; background-color: lightblue" th:field="*{inputText}" th:rows="5"/>
+            <textarea class="full-text-area" th:field="*{inputText}" th:rows="10"/>
             <br/><br/>
             <input type="submit" ajax="false" th:value="Kompresuj"/>
         </div>
         <div class="row">
-            <div class="col-6" style="padding-left: 0; margin-left: 0">
+            <div class="col-6 close-left" >
                 <label>Model źródła danych:</label>
-                <textarea style="width: 100%; line-height: 90%; font-size: 14px" th:text="*{inputModel}"
+                <textarea class="half-text-area" th:text="*{inputModel}"
                           readonly="true"
                           rows="20"/>
             </div>
-            <div class="col-6" style="padding-right: 0; margin-right: 0">
-                <label>Tabela kodowania (<span th:text="*{codingTableLength}"/> bitów):</label>
-                <textarea style="width: 100%; line-height: 90%; font-size: 14px" th:text="*{codingTable}"
+            <div class="col-6 close-right">
+                <label>Tabela kodowania (<span th:text="*{codingTableLength}"/>B):</label>
+                <textarea class="half-text-area" th:text="*{codingTable}"
                           readonly="true"
                           rows="20"/>
             </div>
         </div>
-        <div class="row">
-            <label>Tekst binarnie przed kompresją (<span th:text="*{uncompressedTextLength}"/> bitów):</label>
-            <textarea style="width: 100%; height: auto; font-size: 12px" th:text="*{uncompressedText}" readonly="true"
-                      rows="10"/>
-        </div>
+<!--        <div class="row">-->
+<!--            <label>Tekst binarnie przed kompresją (<span th:text="*{uncompressedTextLength}"/>B):</label>-->
+<!--            <textarea class="full-text-area small" th:text="*{uncompressedText}" readonly="true"-->
+<!--                      rows="10"/>-->
+<!--        </div>-->
         <div class="row">
             <label>Drzewo Huffmana:</label>
             <br/>
-            <img style="width: 100%" th:src="@{{treeGraphPath}(treeGraphPath=*{treeGraphPath})}" alt="Tree Graph" >
+            <img style="width: 100%" th:src="*{'data:image/png;base64,'+treeGraph}" alt="Tree Graph" >
         </div>
         <div class="row">
-            <label>Tekst binarnie po kompresji (<span th:text="*{compressedTextLength}"/> bitów):</label>
-            <textarea style="width: 100%; height: auto; font-size: 12px" th:text="*{compressedText}" readonly="true"
-                      rows="10"/>
+            <label>Tekst po kompresji (<span th:text="*{compressedTextLength}"/>B):</label>
+            <textarea class="full-text-area small" th:text="*{compressedText}" readonly="true"
+                      rows="10" />
         </div>
-        <div class="row">
-            <label>Łączna długość skompresowanego tekstu: <b><span th:text="*{totalCompressedLength}"/></b></label>
-        </div>
-        <div class="row">
+        <div class="row bottom">
             <label>Współczynnik kompresji: <b><span th:text="*{compressionRatio}"/></b></label>
         </div>
     </div>
 </form>
-</div>
+<footer class="navbar fixed-bottom navbar-dark bg-dark footer-dark">
+    <div>© 2020 Copyright:
+        <a href="https://github.com/HarryPiotr"> Piotr Anuśkiewicz</a>, I7G2S1, Wojskowa Akademia Techniczna
+    </div>
+</footer>
 </body>
 </html>

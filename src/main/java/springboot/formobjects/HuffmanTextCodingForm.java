@@ -5,8 +5,6 @@ import com.mxgraph.layout.mxIGraphLayout;
 import com.mxgraph.util.mxCellRenderer;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
-import org.springframework.beans.factory.annotation.Autowired;
-import springboot.CloudTools;
 import tools.*;
 
 import javax.imageio.ImageIO;
@@ -16,8 +14,9 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 
-public class HuffmanForm {
+public class HuffmanTextCodingForm {
 
     private String inputText;
     private String inputModel;
@@ -27,12 +26,10 @@ public class HuffmanForm {
     private int uncompressedTextLength;
     private int codingTableLength;
     private int compressedTextLength;
-    private int totalCompressedLength;
     private String compressionRatio = new DecimalFormat("#0.0000").format(0.0);
     private ArrayList<Node> nodes;
-    private String treeGraphPath;
     private ReplacementNode treeRoot;
-
+    private String treeGraph;
 
     public String getInputText() {
         return inputText;
@@ -50,10 +47,11 @@ public class HuffmanForm {
         StringBuilder im = new StringBuilder();
 
         for(Node n : nodes) {
-            im.append(n.getSymbol());
+            if(n.getIsWhiteSpace()) im.append(n.getWhiteSpace());
+            else im.append(n.getSymbol());
             im.append(":");
             im.append(n.getOccurrences());
-            im.append("\n");
+            im.append(System.lineSeparator());
         }
 
         inputModel = im.toString();
@@ -75,11 +73,11 @@ public class HuffmanForm {
         }
 
         uncompressedText = ut.toString();
-        uncompressedTextLength = uncompressedText.length();
+        uncompressedTextLength = uncompressedText.length() / 8;
 
     }
 
-    public void generateTreeGraph(String fileID) {
+    public void generateTreeGraph() {
 
         treeRoot = Huffman.buildTree(nodes);
         Graph<String, BinaryTreeEdge> g = Huffman.generateTreeGraph(treeRoot);
@@ -89,8 +87,6 @@ public class HuffmanForm {
         layout.execute(graphAdapter.getDefaultParent());
 
         BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 2, Color.WHITE, true, null);
-        String absolutePath = fileID + ".png";
-        this.treeGraphPath = "https://storage.cloud.google.com/eu.artifacts.secret-walker-295314.appspot.com/tree_graphs/" + fileID + ".png";
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
             ImageIO.write(image, "PNG", os);
@@ -98,26 +94,41 @@ public class HuffmanForm {
         catch(IOException e) {
             e.printStackTrace();
         }
-        CloudTools.uploadFile(os, absolutePath);
+        this.treeGraph = Base64.getEncoder().encodeToString(os.toByteArray());
     }
 
     public void generateCodingTable() {
 
         ReplacementNode treeRoot = Huffman.buildTree(nodes);
         Huffman.createCodingSequences(treeRoot, "");
-        codingTable = Huffman.saveCodingTable(nodes, compressedText);
+        codingTable = Huffman.saveCodingTable(nodes);
 
     }
 
     public int getCodingTableLength() {
-        if(codingTable != null) codingTableLength = codingTable.length() * 16;
+        if(codingTable != null) codingTableLength = codingTable.length() * 2;
         return codingTableLength;
     }
 
     public void generateCompressedText() {
 
-        compressedText = Huffman.codeFile(nodes, inputText);
-        compressedTextLength = compressedText.length();
+        StringBuilder completeText = new StringBuilder();
+        StringBuilder modelCopy = new StringBuilder();
+        StringBuilder codedText = new StringBuilder(Huffman.codeTextBinary(nodes, inputText));
+        String rawText = Huffman.codeFile(nodes, inputText);
+
+        for(Node n : nodes) {
+            if(n.getIsWhiteSpace()) modelCopy.append(n.getWhiteSpace());
+            else modelCopy.append(n.getSymbol());
+            modelCopy.append(n.getOccurrences());
+            modelCopy.append(System.lineSeparator());
+        }
+
+        completeText.append(modelCopy);
+        completeText.append(codedText);
+
+        compressedText = completeText.toString();
+        compressedTextLength = (modelCopy.length() + rawText.length() + 1 ) * 2;
 
     }
 
@@ -169,25 +180,13 @@ public class HuffmanForm {
         this.compressedTextLength = compressedTextLength;
     }
 
-    public int getTotalCompressedLength() {
-        totalCompressedLength = compressedTextLength + codingTableLength;
-        return totalCompressedLength;
-    }
-
-    public void setTotalCompressedLength(int totalCompressedLength) {
-        this.totalCompressedLength = totalCompressedLength;
-    }
-
     public String getCompressionRatio() {
-        if(uncompressedTextLength != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) getTotalCompressedLength() / (double) uncompressedTextLength);
+        if(uncompressedTextLength != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) getCompressedTextLength() / (double) uncompressedTextLength);
         return compressionRatio;
     }
 
-    public String getTreeGraphPath() {
-        return treeGraphPath;
+    public String getTreeGraph() {
+        return treeGraph;
     }
 
-    public void setTreeGraphPath(String treeGraphPath) {
-        this.treeGraphPath = treeGraphPath;
-    }
 }

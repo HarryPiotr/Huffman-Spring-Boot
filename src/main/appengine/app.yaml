@@ -1,5 +1,4 @@
-runtime: java
-env: flex
+runtime: java11
 env_variables:
   SPRING_PROFILES_ACTIVE: "gcp,mysql"
 handlers:
@@ -13,10 +12,3 @@ resources:
     - name: ramdisk1
       volume_type: tmpfs
       size_gb: 0.5
-# Automatic Scaling
-automatic_scaling:
-  min_num_instances: 1
-  max_num_instances: 4
-  cool_down_period_sec: 180
-  cpu_utilization:
-    target_utilization: 0.6

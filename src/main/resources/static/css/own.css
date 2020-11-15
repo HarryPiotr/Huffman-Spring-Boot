@@ -1,0 +1,43 @@
+.full-text-area {
+    width: 100%;
+    height: auto;
+    font-size: 14px;
+}
+
+.half-text-area {
+    width: 100%;
+    line-height: 90%;
+    font-size: 14px;
+    white-space: pre-wrap;
+}
+
+.small {
+    font-size: 12px;
+}
+
+.top {
+    margin-top: 100px;
+}
+
+.bottom {
+    margin-bottom: 100px;
+}
+
+.close-left {
+    padding-left: 0;
+    margin-left: 0;
+}
+
+.close-right {
+    padding-right: 0;
+    margin-right: 0;
+}
+
+.footer-dark {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.footer-dark a, .footer-dark a::before, .footer-dark a::after {
+    text-decoration: none;
+    color: rgba(200, 200, 255, 0.9);
+}

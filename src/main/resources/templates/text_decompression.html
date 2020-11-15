@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Text Compression</title>
+    <title>Text Decompression</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link href="../static/bootstrap/css/bootstrap.css" rel="stylesheet" th:href="@{/bootstrap/css/bootstrap.css}"/>
     <link rel="stylesheet" href="../static/css/own.css" th:href="@{/css/own.css}">
@@ -9,19 +9,19 @@
 <body>
 <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark">
     <ul class="navbar-nav">
-        <li class="nav-item active"><a class="nav-link" href="/">Text Compression</a></li>
-        <li class="nav-item"><a class="nav-link" href="text_decompression.html">Text Decompression</a></li>
+        <li class="nav-item"><a class="nav-link" href="/">Text Compression</a></li>
+        <li class="nav-item active"><a class="nav-link" href="text_decompression.html">Text Decompression</a></li>
         <li class="nav-item"><a class="nav-link" href="file_compression.html">File Compression</a></li>
         <li class="nav-item"><a class="nav-link" href="file_decompression.html">File Decompression</a></li>
     </ul>
 </nav>
-<form th:action="@{/index}" method="post" th:object="${huffmanTextCodingForm}">
-    <div class="container wrapper">
+<form th:action="@{/text_decompression.html}" method="post" accept-charset="UTF-16" th:object="${huffmanTextDecodingForm}">
+    <div class="container">
         <div class="row top bottom">
             <label>Tekst:</label>
             <textarea class="full-text-area" th:field="*{inputText}" rows="5"></textarea>
             <br/><br/>
-            <input type="submit" th:value="Kompresuj"/>
+            <input type="submit" th:value="Dekompresuj"/>
         </div>
     </div>
 </form>
@@ -30,6 +30,5 @@
         <a href="https://github.com/HarryPiotr"> Piotr Anuśkiewicz</a>, I7G2S1, Wojskowa Akademia Techniczna
     </div>
 </footer>
-</div>
 </body>
 </html>

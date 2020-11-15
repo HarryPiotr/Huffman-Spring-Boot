@@ -6,6 +6,7 @@ import org.jgrapht.graph.SimpleGraph;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 public class Huffman {
@@ -90,18 +91,19 @@ public class Huffman {
 
     public static void checkBranch(Node root, Graph<String, BinaryTreeEdge> g, boolean dir) {
 
-        if(root instanceof ReplacementNode) {
-            g.addVertex("Rep-" + (int)root.getSymbol());
-            if(root.getParent() != null) g.addEdge("Rep-" + (int)root.getParent().getSymbol(), "Rep-" + (int)root.getSymbol(), new BinaryTreeEdge(dir));
+        if (root instanceof ReplacementNode) {
+            g.addVertex("#" + (int) root.getSymbol());
+            if (root.getParent() != null)
+                g.addEdge("#" + (int) root.getParent().getSymbol(), "#" + (int) root.getSymbol(), new BinaryTreeEdge(dir));
             checkBranch(((ReplacementNode) root).getLeft(), g, true);
             checkBranch(((ReplacementNode) root).getRight(), g, false);
-        }
-        else {
-            g.addVertex("" + root.getSymbol());
-            if(root.getParent() != null) g.addEdge("Rep-" + (int)root.getParent().getSymbol(), "" + root.getSymbol(), new BinaryTreeEdge(dir));
+        } else {
+            String vertexName = (!root.getIsWhiteSpace() ? "" + root.getSymbol() : root.getWhiteSpace());
+            g.addVertex(vertexName);
+            if (root.getParent() != null)
+                g.addEdge("#" + (int) root.getParent().getSymbol(), vertexName, new BinaryTreeEdge(dir));
         }
     }
-
 
 
     public static void createCodingSequences(Node node, String prefix) {
@@ -150,16 +152,56 @@ public class Huffman {
         ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
         flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
 
+        StringBuilder buffer = new StringBuilder();
         StringBuilder out = new StringBuilder();
 
-        for(int i = 0; i < s.length(); i++) {
+        for (int i = 0; i < s.length(); i++) {
 
             Node n = findNode(nodes, s.charAt(i));
-            out.append(n.getCodingSequence());
-
+            buffer.append(n.getCodingSequence());
+            if (buffer.length() >= 16) {
+                String seq = buffer.substring(0, 16);
+                buffer.delete(0, 16);
+                char nb = (char) Integer.parseInt(seq, 2);
+                out.append(nb);
+            }
         }
+        int addedBits = 0;
+        if (buffer.length() > 0) {
+            addedBits = 16 - buffer.length();
+            out.insert(0, (char) (addedBits + 64));
+            while (buffer.length() < 16) buffer.append("0");
+            String seq = buffer.substring(0, 16);
+            char nb = (char) Integer.parseInt(seq, 2);
+            out.append(nb);
+        }
+        else out.insert(0, (char) (addedBits + 64));
 
         return out.toString();
+
+    }
+
+    public static String codeTextBinary(ArrayList<Node> nodes, String s) {
+        ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
+        flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
+
+        StringBuilder buffer = new StringBuilder();
+        StringBuilder out = new StringBuilder();
+
+        for (int i = 0; i < s.length(); i++) {
+
+            Node n = findNode(nodes, s.charAt(i));
+            buffer.append(n.getCodingSequence());
+        }
+        int addedBits = 0;
+        if (buffer.length() % 16 > 0) {
+            addedBits = 16 - (buffer.length() % 16);
+            buffer.insert(0, (char) (addedBits + 64));
+            while ((buffer.length() % 16) != 0) buffer.append("0");
+        }
+        else buffer.insert(0, (char) (addedBits + 64));
+
+        return buffer.toString();
 
     }
 
@@ -175,12 +217,16 @@ public class Huffman {
         }
     }
 
-    public static String saveCodingTable(ArrayList<Node> nodes, String s) {
+    public static String saveCodingTable(ArrayList<Node> nodes) {
 
         StringBuilder ct = new StringBuilder();
 
         for (Node n : nodes) {
-            ct.append(n.getSymbol() + ":" + n.getCodingSequence() + "\n");
+            if(n.getIsWhiteSpace()) ct.append(n.getWhiteSpace());
+            else ct.append(n.getSymbol());
+            ct.append(":");
+            ct.append(n.getCodingSequence());
+            ct.append(System.lineSeparator());
         }
 
         return ct.toString();
@@ -201,7 +247,7 @@ public class Huffman {
                     byte b = Byte.parseByte(st.nextToken());
                     String seq = st.nextToken();
                     long oc = Long.parseLong(st.nextToken());
-                    Node n = new Node((char)b);
+                    Node n = new Node((char) b);
                     n.setOccurrences(oc);
                     n.setCodingSequence(seq);
                     codingNodes.add(n);
@@ -213,6 +259,13 @@ public class Huffman {
             e.printStackTrace();
         }
 
+        sortNodeList(codingNodes);
+        return buildTree(codingNodes);
+    }
+
+    public static ReplacementNode rebuildTree(ArrayList<Node> inputModel) {
+
+        ArrayList<Node> codingNodes = new ArrayList<>(inputModel);
         sortNodeList(codingNodes);
         return buildTree(codingNodes);
     }
@@ -250,6 +303,23 @@ public class Huffman {
         }
     }
 
+    public static String decodeText(StringBuilder buffer, ReplacementNode root) {
+
+        StringBuilder output = new StringBuilder();
+        Node n = root;
+        int i = 0;
+        while (buffer.length() > i) {
+            if (buffer.charAt(i) == '0') n = ((ReplacementNode) n).getLeft();
+            else n = ((ReplacementNode) n).getRight();
+            i++;
+            if (!(n instanceof ReplacementNode)) {
+                output.append(n.getSymbol());
+                n = root;
+            }
+        }
+        return output.toString();
+    }
+
     public static Node findNode(ArrayList<Node> nodes, byte b) {
         for (Node n : nodes) {
             if (n.getSymbol() == b) return n;
@@ -260,6 +330,13 @@ public class Huffman {
     public static Node findNode(ArrayList<Node> nodes, char c) {
         for (Node n : nodes) {
             if (n.getSymbol() == c) return n;
+        }
+        return null;
+    }
+
+    public static Node findNode(ArrayList<Node> nodes, char c, boolean wsp) {
+        for (Node n : nodes) {
+            if (n.getSymbol() == c && n.getIsWhiteSpace()) return n;
         }
         return null;
     }
