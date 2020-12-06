@@ -1,18 +1,32 @@
 package springboot;
 
+import org.apache.tomcat.util.http.fileupload.FileUtils;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import springboot.formobjects.HuffmanFileCodingForm;
 import springboot.formobjects.HuffmanTextCodingForm;
 import springboot.formobjects.HuffmanTextDecodingForm;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 @Controller
 public class AppController {
@@ -56,5 +70,28 @@ public class AppController {
         hf.decodeText();
         hf.generateTreeGraph();
         return "text_decompression_post";
+    }
+
+    @GetMapping("/file_compression")
+    public String fileCompressionGet(Model model) {
+        return "file_compression";
+    }
+
+    @PostMapping("file_compression")
+    public ResponseEntity<InputStreamResource> fileCompressionPost(@RequestParam("file") MultipartFile file, Model model) throws IOException {
+
+        HuffmanFileCodingForm hf = new HuffmanFileCodingForm();
+        String filename = StringUtils.cleanPath(file.getOriginalFilename());
+        Path path = Paths.get(filename);
+        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+        hf.setFile(path.toFile());
+        hf.compressFile();
+
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(hf.getOutputFile()));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + hf.getOutputFile().getName())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(hf.getOutputFile().length())
+                .body(resource);
     }
 }

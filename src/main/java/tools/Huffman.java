@@ -5,6 +5,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -38,18 +39,18 @@ public class Huffman {
         return nodes;
     }
 
-    public static ArrayList<Node> countSymbols(File f) {
+    public static ArrayList<BinaryNode> countSymbols(File f) {
         //Tutaj zaimplementować czytanie pliku bajt po bajcie i zapisywanie informacji o liczbie wystąpień do listy
 
-        ArrayList<Node> nodes = new ArrayList<>();
+        ArrayList<BinaryNode> nodes = new ArrayList<>();
 
         try {
             InputStream is = new FileInputStream(f);
             byte[] b = {0};
             while (is.read(b) != -1) {
-                Node n = findNode(nodes, b[0]);
+                BinaryNode n = findNode(nodes, b[0]);
                 if (n == null) {
-                    Node newNode = new Node((char) b[0]);
+                    BinaryNode newNode = new BinaryNode(b[0]);
                     nodes.add(newNode);
                 } else n.incrementOccurrences();
             }
@@ -66,6 +67,11 @@ public class Huffman {
         nodes.sort(Node.NodeOccurancesComparator);
     }
 
+    public static void sortBinaryNodeList(ArrayList<BinaryNode> nodes) {
+        //Tutaj zaimplementować dowolny algorytm sortowania listy pod względem ilości wystąpień
+        nodes.sort(BinaryNode.BinaryNodeOccurancesComparator);
+    }
+
     public static ReplacementNode buildTree(ArrayList<Node> nodes) {
         //Tutaj zaimplementować budowanie drzewa Huffmana z obiektów typu Node i ReplacementNode
         int numberOfReplacements = 0;
@@ -80,6 +86,22 @@ public class Huffman {
             nodesCopy.sort(Node.NodeOccurancesComparator);
         }
         return (ReplacementNode) nodesCopy.get(0);
+    }
+
+    public static ReplacementBinaryNode buildTreeBinary(ArrayList<BinaryNode> nodes) {
+        //Tutaj zaimplementować budowanie drzewa Huffmana z obiektów typu Node i ReplacementNode
+        int numberOfReplacements = 0;
+        ArrayList<BinaryNode> nodesCopy = new ArrayList<>(nodes);
+        while (nodesCopy.size() != 1) {
+            BinaryNode n1 = nodesCopy.get(0);
+            BinaryNode n2 = nodesCopy.get(1);
+            ReplacementBinaryNode r = new ReplacementBinaryNode(n1, n2, (byte)(++numberOfReplacements));
+            nodesCopy.remove(n1);
+            nodesCopy.remove(n2);
+            nodesCopy.add(r);
+            nodesCopy.sort(BinaryNode.BinaryNodeOccurancesComparator);
+        }
+        return (ReplacementBinaryNode) nodesCopy.get(0);
     }
 
     public static Graph<String, BinaryTreeEdge> generateTreeGraph(ReplacementNode root) {
@@ -105,6 +127,28 @@ public class Huffman {
         }
     }
 
+    public static Graph<String, BinaryTreeEdge> generateTreeGraphBinary(ReplacementBinaryNode root) {
+
+        Graph<String, BinaryTreeEdge> graph = new SimpleGraph<>(BinaryTreeEdge.class);
+        checkBranchBinary(root, graph, false);
+        return graph;
+    }
+
+    public static void checkBranchBinary(BinaryNode root, Graph<String, BinaryTreeEdge> g, boolean dir) {
+
+        if (root instanceof ReplacementBinaryNode) {
+            g.addVertex("#" + (int) root.getSymbol());
+            if (root.getParent() != null)
+                g.addEdge("#" + (int) root.getParent().getSymbol(), "#" + (int) root.getSymbol(), new BinaryTreeEdge(dir));
+            checkBranchBinary(((ReplacementBinaryNode) root).getLeft(), g, true);
+            checkBranchBinary(((ReplacementBinaryNode) root).getRight(), g, false);
+        } else {
+            String vertexName = (!root.getIsWhiteSpace() ? "" + root.getSymbol() : root.getWhiteSpace());
+            g.addVertex(vertexName);
+            if (root.getParent() != null)
+                g.addEdge("#" + (int) root.getParent().getSymbol(), vertexName, new BinaryTreeEdge(dir));
+        }
+    }
 
     public static void createCodingSequences(Node node, String prefix) {
         if (!(node instanceof ReplacementNode)) node.setCodingSequence(prefix);
@@ -115,10 +159,20 @@ public class Huffman {
         }
     }
 
-    public static void codeFile(ArrayList<Node> nodes, File in) {
-        File outputFile = new File(in.getAbsolutePath() + ".huff");
-        ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
-        flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
+    public static void createCodingSequencesBinary(BinaryNode node, String prefix) {
+        if (!(node instanceof ReplacementBinaryNode)) node.setCodingSequence(prefix);
+        else {
+            ReplacementBinaryNode rnode = (ReplacementBinaryNode) node;
+            createCodingSequencesBinary(rnode.getLeft(), prefix + "0");
+            createCodingSequencesBinary(rnode.getRight(), prefix + "1");
+        }
+    }
+
+    public static File codeFile(ArrayList<BinaryNode> nodes, File in) {
+        File outputFile = new File(in.getName() + ".temp");
+        File outputFile2 = new File(in.getName() + ".huff");
+        ArrayList<BinaryNode> flippedNodes = new ArrayList<>(nodes);
+        flippedNodes.sort(BinaryNode.BinaryNodeOccurancesComparatorDescending);
 
         try {
             InputStream is = new FileInputStream(in);
@@ -126,29 +180,49 @@ public class Huffman {
             byte[] b = {0};
             StringBuffer buffer = new StringBuffer();
             while (is.read(b) != -1) {
-                Node n = findNode(nodes, b[0]);
+                BinaryNode n = findNode(nodes, b[0]);
                 buffer.append(n.getCodingSequence());
-                if (buffer.length() >= 8) {
+                while (buffer.length() >= 8) {
                     String seq = buffer.substring(0, 8);
                     buffer.delete(0, 8);
                     byte nb = (byte) Integer.parseInt(seq, 2);
                     os.write(nb);
                 }
             }
+            int addedBits = 0;
             if (buffer.length() > 0) {
+                addedBits = 8 - buffer.length();
                 while (buffer.length() < 8) buffer.append("0");
-                String seq = buffer.substring(0, 8);
-                byte nb = (byte) Integer.parseInt(seq, 2);
+                byte nb = (byte) Integer.parseInt(buffer.toString(), 2);
                 os.write(nb);
             }
+
+
+            OutputStream os2 = new FileOutputStream(outputFile2);
+            os2.write((byte)addedBits);
+            for(BinaryNode n : nodes) {
+                os2.write(n.getSymbol());
+                ByteBuffer bb = ByteBuffer.allocate(Long.BYTES);
+                bb.putLong(n.getOccurrences());
+                os2.write(bb.array());
+                os2.write(10);
+            }
+            InputStream is2 = new FileInputStream(outputFile);
+            while(is2.read(b) != -1) {
+                os2.write(b);
+            }
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             System.out.println(in.getName() + ": Niespodziewany blad podczas czytania pliku.");
         }
+
+        outputFile.delete();
+        return outputFile2;
     }
 
-    public static String codeFile(ArrayList<Node> nodes, String s) {
+    public static String codeString(ArrayList<Node> nodes, String s) {
         ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
         flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
 
@@ -186,7 +260,6 @@ public class Huffman {
         flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
 
         StringBuilder buffer = new StringBuilder();
-        StringBuilder out = new StringBuilder();
 
         for (int i = 0; i < s.length(); i++) {
 
@@ -320,8 +393,8 @@ public class Huffman {
         return output.toString();
     }
 
-    public static Node findNode(ArrayList<Node> nodes, byte b) {
-        for (Node n : nodes) {
+    public static BinaryNode findNode(ArrayList<BinaryNode> nodes, byte b) {
+        for (BinaryNode n : nodes) {
             if (n.getSymbol() == b) return n;
         }
         return null;

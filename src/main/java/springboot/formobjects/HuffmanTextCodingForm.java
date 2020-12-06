@@ -115,7 +115,7 @@ public class HuffmanTextCodingForm {
         StringBuilder completeText = new StringBuilder();
         StringBuilder modelCopy = new StringBuilder();
         StringBuilder codedText = new StringBuilder(Huffman.codeTextBinary(nodes, inputText));
-        String rawText = Huffman.codeFile(nodes, inputText);
+        String rawText = Huffman.codeString(nodes, inputText);
 
         for(Node n : nodes) {
             if(n.getIsWhiteSpace()) modelCopy.append(n.getWhiteSpace());
