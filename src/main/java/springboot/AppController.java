@@ -45,6 +45,13 @@ public class AppController {
         return "index";
     }
 
+    @GetMapping("/index")
+    public String index2(Model model) {
+        model.addAttribute("huffmanTextCodingForm", new HuffmanTextCodingForm());
+        return "index";
+    }
+
+
     @PostMapping("/index")
     public String indexPost(@ModelAttribute HuffmanTextCodingForm hf, Model model) {
 

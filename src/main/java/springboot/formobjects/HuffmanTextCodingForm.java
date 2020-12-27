@@ -5,13 +5,14 @@ import com.mxgraph.layout.mxIGraphLayout;
 import com.mxgraph.util.mxCellRenderer;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
-import tools.*;
+import tools.BinaryTreeEdge;
+import tools.huffman.text.*;
 
 import javax.imageio.ImageIO;
-import javax.servlet.ServletContext;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -41,8 +42,8 @@ public class HuffmanTextCodingForm {
 
     public void generateModel() {
 
-        nodes = Huffman.countSymbols(inputText);
-        Huffman.sortNodeList(nodes);
+        nodes = TextTools.countSymbols(inputText);
+        TextTools.sortNodeList(nodes);
 
         StringBuilder im = new StringBuilder();
 
@@ -79,8 +80,8 @@ public class HuffmanTextCodingForm {
 
     public void generateTreeGraph() {
 
-        treeRoot = Huffman.buildTree(nodes);
-        Graph<String, BinaryTreeEdge> g = Huffman.generateTreeGraph(treeRoot);
+        treeRoot = TextTools.buildTree(nodes);
+        Graph<String, BinaryTreeEdge> g = TextTools.generateTreeGraph(treeRoot);
 
         JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<>(g);
         mxIGraphLayout layout = new mxCompactTreeLayout(graphAdapter, false, false);
@@ -99,9 +100,9 @@ public class HuffmanTextCodingForm {
 
     public void generateCodingTable() {
 
-        ReplacementNode treeRoot = Huffman.buildTree(nodes);
-        Huffman.createCodingSequences(treeRoot, "");
-        codingTable = Huffman.saveCodingTable(nodes);
+        ReplacementNode treeRoot = TextTools.buildTree(nodes);
+        TextTools.createCodingSequences(treeRoot, "");
+        codingTable = TextTools.saveCodingTable(nodes);
 
     }
 
@@ -114,21 +115,20 @@ public class HuffmanTextCodingForm {
 
         StringBuilder completeText = new StringBuilder();
         StringBuilder modelCopy = new StringBuilder();
-        StringBuilder codedText = new StringBuilder(Huffman.codeTextBinary(nodes, inputText));
-        String rawText = Huffman.codeString(nodes, inputText);
+        String rawText = TextTools.encodeText(nodes, inputText);
 
         for(Node n : nodes) {
             if(n.getIsWhiteSpace()) modelCopy.append(n.getWhiteSpace());
             else modelCopy.append(n.getSymbol());
             modelCopy.append(n.getOccurrences());
-            modelCopy.append(System.lineSeparator());
+            modelCopy.append(";");
         }
 
         completeText.append(modelCopy);
-        completeText.append(codedText);
+        completeText.append(rawText);
 
         compressedText = completeText.toString();
-        compressedTextLength = (modelCopy.length() + rawText.length() + 1 ) * 2;
+        compressedTextLength = compressedText.length() * 2;
 
     }
 
@@ -181,7 +181,7 @@ public class HuffmanTextCodingForm {
     }
 
     public String getCompressionRatio() {
-        if(uncompressedTextLength != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) getCompressedTextLength() / (double) uncompressedTextLength);
+        if(uncompressedTextLength != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) getCompressedTextLength() / (double) (inputText.length() * 2));
         return compressionRatio;
     }
 

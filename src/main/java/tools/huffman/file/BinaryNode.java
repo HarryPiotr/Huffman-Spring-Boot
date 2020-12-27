@@ -1,4 +1,4 @@
-package tools;
+package tools.huffman.file;
 
 import java.util.Comparator;
 

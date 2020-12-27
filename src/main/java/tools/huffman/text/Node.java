@@ -1,4 +1,4 @@
-package tools;
+package tools.huffman.text;
 
 import java.util.Comparator;
 

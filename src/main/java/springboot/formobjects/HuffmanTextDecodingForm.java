@@ -6,10 +6,7 @@ import com.mxgraph.util.mxCellRenderer;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
 import tools.BinaryTreeEdge;
-import tools.Huffman;
-import tools.Node;
-import tools.ReplacementNode;
-
+import tools.huffman.text.*;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -22,7 +19,6 @@ public class HuffmanTextDecodingForm {
 
     private String inputText;
     private String outputText;
-    private int addedBits;
     private String codedText;
     private String inputModelView;
     private ArrayList<Node> nodes = new ArrayList<>();
@@ -36,18 +32,18 @@ public class HuffmanTextDecodingForm {
         StringBuilder msb = new StringBuilder();
         while(true) {
             try {
-                String line = sb.substring(0, sb.indexOf("\r\n"));
-                if(line.length() == 0) line = sb.substring(0, sb.indexOf("\r\n", 1));
+                String line = sb.substring(0, sb.indexOf(";"));
+                if(line.length() == 0) line = sb.substring(0, sb.indexOf(";", 1));
 
-                if(line.matches("^.[0-9]+")) {
+                if(line.matches("[^;][0-9]+")) {
                     Node n = new Node(line.charAt(0));
-                    n.setOccurrences(Integer.valueOf(line.substring(1, sb.indexOf("\r\n"))));
+                    n.setOccurrences(Integer.valueOf(line.substring(1, sb.indexOf(";"))));
                     nodes.add(n);
                     msb.append(line.charAt(0));
                     msb.append(":");
-                    msb.append(line.substring(1, sb.indexOf("\r\n")));
-                    msb.append("\r\n");
-                    sb.delete(0, sb.indexOf("\r\n") + 2);
+                    msb.append(line.substring(1, sb.indexOf(";")));
+                    msb.append("\n");
+                    sb.delete(0, sb.indexOf(";") + 1);
                 }
                 else if(line.matches("(NL|CR|SP|HT)[0-9]+")) {
                     String weirdCharacter = line.substring(0, 2);
@@ -69,13 +65,23 @@ public class HuffmanTextDecodingForm {
                             n = new Node('x');
                     }
                     n.setIsWhiteSpace(true);
-                    n.setOccurrences(Integer.valueOf(line.substring(2, sb.indexOf("\r\n"))));
+                    n.setOccurrences(Integer.valueOf(line.substring(2, sb.indexOf(";"))));
                     nodes.add(n);
                     msb.append(line.substring(0, 2));
                     msb.append(":");
-                    msb.append(line.substring(2, sb.indexOf("\r\n")));
+                    msb.append(line.substring(2, sb.indexOf(";")));
                     msb.append("\n");
-                    sb.delete(0, sb.indexOf("\r\n", 1) + 2);
+                    sb.delete(0, sb.indexOf(";", 1) + 1);
+                }
+                else if(line.matches(";[0-9]+")) {
+                    Node n = new Node(line.charAt(0));
+                    n.setOccurrences(Integer.valueOf(line.substring(1, sb.indexOf(";", 1))));
+                    nodes.add(n);
+                    msb.append(line.charAt(0));
+                    msb.append(":");
+                    msb.append(line.substring(1, sb.indexOf(";", 1)));
+                    msb.append("\n");
+                    sb.delete(0, sb.indexOf(";", 1) + 1);
                 }
                 else {
                     break;
@@ -86,29 +92,28 @@ public class HuffmanTextDecodingForm {
             }
         }
 
-        addedBits = (int) (sb.charAt(0) - 64);
         inputModelView = msb.toString();
-        codedText = sb.substring(1);
-
+        codedText = sb.substring(0);
     }
 
     public void decodeText() {
 
-        char codedTextCharArr[] = codedText.toCharArray();
-        StringBuilder buffer = new StringBuilder(codedText);
+        System.out.println(codedText);
+        //Odkodowanie Base64
+        byte[] codedBytes = Base64.getDecoder().decode(codedText);
 
-        for(int i = 1; i < addedBits; i++) buffer.deleteCharAt(buffer.length() - 1);
-        this.treeRoot = Huffman.rebuildTree(nodes);
-        Huffman.createCodingSequences(treeRoot, "");
-        codingTable = Huffman.saveCodingTable(nodes);
-        this.outputText = Huffman.decodeText(buffer, this.treeRoot);
+        this.treeRoot = TextTools.rebuildTree(nodes);
+        TextTools.createCodingSequences(treeRoot, "");
+        codingTable = TextTools.saveCodingTable(nodes);
+
+        this.outputText = TextTools.decodeText(codedBytes, this.treeRoot);
 
     }
 
 
     public void generateTreeGraph() {
 
-        Graph<String, BinaryTreeEdge> g = Huffman.generateTreeGraph(treeRoot);
+        Graph<String, BinaryTreeEdge> g = TextTools.generateTreeGraph(treeRoot);
 
         JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<>(g);
         mxIGraphLayout layout = new mxCompactTreeLayout(graphAdapter, false, false);
@@ -147,10 +152,6 @@ public class HuffmanTextDecodingForm {
 
     public String getTreeGraph() {
         return treeGraph;
-    }
-
-    public int getAddedBits() {
-        return addedBits;
     }
 
     public String getCodingTable() {

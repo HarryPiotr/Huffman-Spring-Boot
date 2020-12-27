@@ -1,11 +1,6 @@
 package springboot.formobjects;
 
-import org.jgrapht.Graph;
-import tools.BinaryNode;
-import tools.BinaryTreeEdge;
-import tools.Huffman;
-import tools.ReplacementBinaryNode;
-
+import tools.huffman.file.*;
 import java.io.File;
 import java.util.ArrayList;
 
@@ -19,10 +14,10 @@ public class HuffmanFileDecodingForm {
 
     public void decompressFile() {
 
-        nodes = Huffman.rebuildTree(file);
-        treeRoot = Huffman.buildTreeBinary(nodes);
-        Huffman.createCodingSequencesBinary(treeRoot, "");
-        outputFile = Huffman.decodeFile(file, treeRoot);
+        nodes = FileTools.rebuildTree(file);
+        treeRoot = FileTools.buildTreeBinary(nodes);
+        FileTools.createCodingSequencesBinary(treeRoot, "");
+        outputFile = FileTools.decodeFile(file, treeRoot);
 
     }
 

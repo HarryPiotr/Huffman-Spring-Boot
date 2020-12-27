@@ -1,4 +1,6 @@
-package tools;
+package tools.huffman.file;
+
+import tools.huffman.file.BinaryNode;
 
 public class ReplacementBinaryNode extends BinaryNode {
 
