@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.formobjects.HuffmanFileCodingForm;
+import springboot.formobjects.HuffmanFileDecodingForm;
 import springboot.formobjects.HuffmanTextCodingForm;
 import springboot.formobjects.HuffmanTextDecodingForm;
 
@@ -94,4 +95,28 @@ public class AppController {
                 .contentLength(hf.getOutputFile().length())
                 .body(resource);
     }
+
+    @GetMapping("/file_decompression")
+    public String fileDecompressionGet(Model model) {
+        return "file_decompression";
+    }
+
+    @PostMapping("file_decompression")
+    public ResponseEntity<InputStreamResource> fileDecompressionPost(@RequestParam("file") MultipartFile file, Model model) throws IOException {
+
+        HuffmanFileDecodingForm hf = new HuffmanFileDecodingForm();
+        String filename = StringUtils.cleanPath(file.getOriginalFilename());
+        Path path = Paths.get(filename);
+        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+        hf.setFile(path.toFile());
+        hf.decompressFile();
+
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(hf.getOutputFile()));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + hf.getOutputFile().getName())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(hf.getOutputFile().length())
+                .body(resource);
+    }
+
 }

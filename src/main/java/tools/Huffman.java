@@ -7,6 +7,7 @@ import org.jgrapht.graph.SimpleGraph;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -179,6 +180,7 @@ public class Huffman {
             OutputStream os = new FileOutputStream(outputFile);
             byte[] b = {0};
             StringBuffer buffer = new StringBuffer();
+            System.out.println("Kodowanie pliku");
             while (is.read(b) != -1) {
                 BinaryNode n = findNode(nodes, b[0]);
                 buffer.append(n.getCodingSequence());
@@ -190,6 +192,7 @@ public class Huffman {
                 }
             }
             int addedBits = 0;
+            System.out.println("Dopisywanie bitow na koncu");
             if (buffer.length() > 0) {
                 addedBits = 8 - buffer.length();
                 while (buffer.length() < 8) buffer.append("0");
@@ -199,23 +202,81 @@ public class Huffman {
 
 
             OutputStream os2 = new FileOutputStream(outputFile2);
+            System.out.println("Tworzenie nowego pliku");
+            System.out.println("Zapisywanie liczby dopisanych bitow");
             os2.write((byte)addedBits);
-            for(BinaryNode n : nodes) {
-                os2.write(n.getSymbol());
-                ByteBuffer bb = ByteBuffer.allocate(Long.BYTES);
-                bb.putLong(n.getOccurrences());
-                os2.write(bb.array());
-                os2.write(10);
+            System.out.println("Zapisywanie liczby linijek tabeli modelu");
+            byte[] ns = ByteBuffer.allocate(2).putChar((char)nodes.size()).array();
+            os2.write(ns);
+
+            short neededType = 0;
+            long[] numTypesMax = {Byte.MAX_VALUE, Short.MAX_VALUE, Integer.MAX_VALUE, Long.MAX_VALUE};
+            int[] numTypesBytes = {1, 2, 4, 8};
+
+            System.out.println("Szukanie liczby potrzebnych bajtow");
+
+            for(BinaryNode n: nodes) {
+                if(n.getOccurrences() > numTypesMax[neededType]) neededType++;
             }
+
+            ns = ByteBuffer.allocate(1).put((byte)numTypesBytes[neededType]).array();
+
+            System.out.println("Zapisywanie liczby potrzebnych bajtow");
+
+            os2.write(ns);
+
+            System.out.println("Zapisywanie tabeli modelu");
+            switch(numTypesBytes[neededType]) {
+                case 1:
+                    for(BinaryNode n : nodes) {
+                        os2.write(n.getSymbol() & 0xFF);
+                        ByteBuffer bb = ByteBuffer.allocate(Byte.BYTES);
+                        bb.put((byte)n.getOccurrences());
+                        os2.write(bb.array());
+                        os2.write(10);
+                    }
+                    break;
+                case 2:
+                    for(BinaryNode n : nodes) {
+                        os2.write(n.getSymbol() & 0xFF);
+                        ByteBuffer bb = ByteBuffer.allocate(Short.BYTES);
+                        bb.putShort((short)n.getOccurrences());
+                        os2.write(bb.array());
+                        os2.write(10);
+                    }
+                    break;
+                case 4:
+                    for(BinaryNode n : nodes) {
+                        os2.write(n.getSymbol() & 0xFF);
+                        ByteBuffer bb = ByteBuffer.allocate(Integer.BYTES);
+                        bb.putInt((int)n.getOccurrences());
+                        os2.write(bb.array());
+                        os2.write(10);
+                    }
+                    break;
+                case 8:
+                    for(BinaryNode n : nodes) {
+                        os2.write(n.getSymbol() & 0xFF);
+                        ByteBuffer bb = ByteBuffer.allocate(Long.BYTES);
+                        bb.putLong(n.getOccurrences());
+                        os2.write(bb.array());
+                        os2.write(10);
+                    }
+                    break;
+            }
+
+            System.out.println("Przepisywanie zakodowanego pliku");
+
             InputStream is2 = new FileInputStream(outputFile);
             while(is2.read(b) != -1) {
                 os2.write(b);
             }
+            os2.close();
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            System.out.println(in.getName() + ": Niespodziewany blad podczas czytania pliku.");
+            e.printStackTrace();
         }
 
         outputFile.delete();
@@ -278,18 +339,6 @@ public class Huffman {
 
     }
 
-    public static void saveCodingTable(ArrayList<Node> nodes, File file) {
-        try {
-            PrintWriter of = new PrintWriter(file.getAbsolutePath() + ".coding");
-            for (Node n : nodes) {
-                of.println(n.getSymbol() + ":" + n.getCodingSequence() + ":" + n.getOccurrences());
-            }
-            of.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
     public static String saveCodingTable(ArrayList<Node> nodes) {
 
         StringBuilder ct = new StringBuilder();
@@ -305,35 +354,80 @@ public class Huffman {
         return ct.toString();
     }
 
-    public static ReplacementNode rebuildTree(File codingFile) {
+    public static ArrayList<BinaryNode> rebuildTree(File file) {
 
-        ArrayList<Node> codingNodes = new ArrayList<>();
+        ArrayList<BinaryNode> codingNodes = new ArrayList<>();
+        byte[] b = {0};
+        int occBytes;
+        ByteBuffer bb;
 
         try {
-            FileReader fr = new FileReader(codingFile);
-            BufferedReader br = new BufferedReader(fr);
-            String fileLine;
-            do {
-                fileLine = br.readLine();
-                if (fileLine != null) {
-                    StringTokenizer st = new StringTokenizer(fileLine, ":");
-                    byte b = Byte.parseByte(st.nextToken());
-                    String seq = st.nextToken();
-                    long oc = Long.parseLong(st.nextToken());
-                    Node n = new Node((char) b);
-                    n.setOccurrences(oc);
-                    n.setCodingSequence(seq);
-                    codingNodes.add(n);
-                }
-            } while (fileLine != null);
+            InputStream is = new FileInputStream(file);
+            is.read(b);
+            //Odczytujemy liczbę linijek słownikowych (INT)
+            byte[] tb = {0, 0};
+            is.read(tb);
+            bb = ByteBuffer.wrap(tb);
+            int lineNum = bb.getChar();
+            is.read(b);
+            occBytes = b[0] & 0xFF;
+
+            System.out.println("Tablicę zakodowano " + occBytes + " bajtami liczbowymi");
+
+            byte[] line = new byte[1 + occBytes + 1];
+
+            System.out.println("Linijki " + line.length + "-bitowe");
+
+            switch(occBytes) {
+                case 1:
+                    for(int i = 0; i < lineNum ; i++) {
+                        is.read(line);
+                        BinaryNode newNode = new BinaryNode((byte)(line[0] & 0xFF));
+                        bb = ByteBuffer.wrap(Arrays.copyOfRange(line, 1, occBytes + 1));
+                        byte occ = bb.get();
+                        newNode.setOccurrences(occ);
+                        codingNodes.add(newNode);
+                    }
+                    break;
+                case 2:
+                    for(int i = 0; i < lineNum ; i++) {
+                        is.read(line);
+                        BinaryNode newNode = new BinaryNode(line[0]);
+                        bb = ByteBuffer.wrap(Arrays.copyOfRange(line, 1, occBytes + 1));
+                        short occ = bb.getShort();
+                        newNode.setOccurrences(occ);
+                        codingNodes.add(newNode);
+                    }
+                    break;
+                case 4:
+                    for(int i = 0; i < lineNum ; i++) {
+                        is.read(line);
+                        BinaryNode newNode = new BinaryNode(line[0]);
+                        bb = ByteBuffer.wrap(Arrays.copyOfRange(line, 1, occBytes + 1));
+                        int occ = bb.getInt();
+                        newNode.setOccurrences(occ);
+                        codingNodes.add(newNode);
+                    }
+                    break;
+                case 8:
+                    for(int i = 0; i < lineNum ; i++) {
+                        is.read(line);
+                        BinaryNode newNode = new BinaryNode(line[0]);
+                        bb = ByteBuffer.wrap(Arrays.copyOfRange(line, 1, occBytes + 1));
+                        long occ = bb.getLong();
+                        newNode.setOccurrences(occ);
+                        codingNodes.add(newNode);
+                    }
+                    break;
+            }
         } catch (FileNotFoundException e) {
-            System.out.println(codingFile.getName() + ": Nie znaleziono tabeli kodowej");
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        sortNodeList(codingNodes);
-        return buildTree(codingNodes);
+        sortBinaryNodeList(codingNodes);
+        return codingNodes;
     }
 
     public static ReplacementNode rebuildTree(ArrayList<Node> inputModel) {
@@ -343,15 +437,34 @@ public class Huffman {
         return buildTree(codingNodes);
     }
 
-    public static void decodeFile(File inputFile, File outputFile, ReplacementNode root) {
+    public static File decodeFile(File inputFile, ReplacementBinaryNode root) {
+
+        File outputFile = new File(inputFile.getName().substring(0, inputFile.getName().length() - 5));
+        byte[] b = {0};
+        int addedBits;
+        int occBytes;
+        InputStream is;
+        OutputStream os;
 
         try {
-            InputStream is = new FileInputStream(inputFile);
-            OutputStream os = new FileOutputStream(outputFile);
+            is = new FileInputStream(inputFile);
+            os = new FileOutputStream(outputFile);
+            is.read(b);
+            addedBits = b[0] & 0xFF;
+            //Odczytujemy liczbę linijek słownikowych (INT)
+            byte[] tb = {0, 0};
+            is.read(tb);
+            ByteBuffer bb = ByteBuffer.wrap(tb);
+            is.read(b);
+            occBytes = b[0] & 0xFF;
+            int lineNum = bb.getChar();
+            byte[] line = new byte[1 + occBytes + 1];
+            //pomijamy linijki słownikowe
+            for(int i = 0; i < lineNum; i++) is.read(line);
 
-            byte[] b = {0};
             StringBuffer buffer = new StringBuffer();
-            Node n = root;
+            BinaryNode n = root;
+
             while (is.read(b) != -1) {
                 int bi = b[0] & 0xFF;   //Poniewaz byte przyjmuje wartosc od -128 do 127
                 for (int i = 0; i < 8; i++) {
@@ -359,21 +472,31 @@ public class Huffman {
                     bi /= 2;
                 }
 
+                //sprawdzamy czy to ostatni bajt w pliku
+                if(is.available() == 0) {
+                    //To znaczy że dotarliśmy do końca pliku
+                    buffer.delete(8 - addedBits, 8);
+                }
+
                 while (buffer.length() > 0) {
-                    if (buffer.substring(0, 1).equals("0")) n = ((ReplacementNode) n).getLeft();
-                    else n = ((ReplacementNode) n).getRight();
+                    if (buffer.substring(0, 1).equals("0")) n = ((ReplacementBinaryNode) n).getLeft();
+                    else n = ((ReplacementBinaryNode) n).getRight();
                     buffer.deleteCharAt(0);
-                    if (!(n instanceof ReplacementNode)) {
+                    if (!(n instanceof ReplacementBinaryNode)) {
                         os.write(n.getSymbol());
                         n = root;
                     }
                 }
             }
+            os.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            System.out.println(inputFile.getName() + ": Niespodziewany blad podczas czytania pliku.");
+            e.printStackTrace();
         }
+
+        return outputFile;
+
     }
 
     public static String decodeText(StringBuilder buffer, ReplacementNode root) {

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>File Decompression</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="../static/bootstrap/css/bootstrap.css" rel="stylesheet" th:href="@{/bootstrap/css/bootstrap.css}"/>
+    <link rel="stylesheet" href="../static/css/own.css" th:href="@{/css/own.css}">
+</head>
+<body>
+<nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark">
+    <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="/">Text Compression</a></li>
+        <li class="nav-item"><a class="nav-link" href="text_decompression.html">Text Decompression</a></li>
+        <li class="nav-item"><a class="nav-link" href="file_compression.html">File Compression</a></li>
+        <li class="nav-item active"><a class="nav-link" href="file_decompression.html">File Decompression</a></li>
+    </ul>
+</nav>
+<form th:action="@{/file_decompression.html}" method="post" enctype="multipart/form-data">
+    <div class="container">
+        <div class="row top">
+            <div class="offset-4 col-4">
+                <input type="file" name="file"/>
+            </div>
+        </div>
+        <div class="row top">
+            <div class="offset-4 col-4">
+                <button class="btn btn-primary" type="submit">Dekompresuj plik</button>
+            </div>
+        </div>
+    </div>
+</form>
+<footer class="navbar fixed-bottom navbar-dark bg-dark footer-dark">
+    <div>© 2020 Copyright:
+        <a href="https://github.com/HarryPiotr"> Piotr Anuśkiewicz</a>, I7G2S1, Wojskowa Akademia Techniczna
+    </div>
+</footer>
+</body>
+</html>
