@@ -71,7 +71,7 @@ public class BinaryNode {
     public static Comparator<BinaryNode> BinaryNodeOccurancesComparatorDescending = new Comparator<BinaryNode>() {
 
         public int compare(BinaryNode n1, BinaryNode n2) {
-            return n1.compareTo(n2);
+            return n2.compareTo(n1);
         }
     };
 

@@ -1,10 +1,7 @@
 package springboot;
 
-import org.apache.tomcat.util.http.fileupload.FileUtils;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,7 +17,6 @@ import springboot.formobjects.HuffmanTextCodingForm;
 import springboot.formobjects.HuffmanTextDecodingForm;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -86,21 +82,23 @@ public class AppController {
     }
 
     @PostMapping("file_compression")
-    public ResponseEntity<InputStreamResource> fileCompressionPost(@RequestParam("file") MultipartFile file, Model model) throws IOException {
+    public void fileCompressionPost(@RequestParam("file") MultipartFile file, Model model, HttpServletResponse response) throws IOException {
 
         HuffmanFileCodingForm hf = new HuffmanFileCodingForm();
         String filename = StringUtils.cleanPath(file.getOriginalFilename());
-        Path path = Paths.get(filename);
-        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
-        hf.setFile(path.toFile());
-        hf.compressFile();
 
-        InputStreamResource resource = new InputStreamResource(new FileInputStream(hf.getOutputFile()));
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + hf.getOutputFile().getName())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(hf.getOutputFile().length())
-                .body(resource);
+        hf.setInput(file.getInputStream());
+
+        int returnSize = hf.calculateExpectedLength();
+
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + filename + ".huff");
+        response.setHeader(HttpHeaders.CONNECTION, "Keep-Alive");
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        response.setContentLength(returnSize);
+        hf.setOutput(response.getOutputStream());
+        hf.compressFile();
+        response.flushBuffer();
+
     }
 
     @GetMapping("/file_decompression")
@@ -109,21 +107,19 @@ public class AppController {
     }
 
     @PostMapping("file_decompression")
-    public ResponseEntity<InputStreamResource> fileDecompressionPost(@RequestParam("file") MultipartFile file, Model model) throws IOException {
+    public void fileDecompressionPost(@RequestParam("file") MultipartFile file, Model model, HttpServletResponse response) throws IOException {
 
         HuffmanFileDecodingForm hf = new HuffmanFileDecodingForm();
         String filename = StringUtils.cleanPath(file.getOriginalFilename());
-        Path path = Paths.get(filename);
-        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
-        hf.setFile(path.toFile());
-        hf.decompressFile();
 
-        InputStreamResource resource = new InputStreamResource(new FileInputStream(hf.getOutputFile()));
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + hf.getOutputFile().getName())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(hf.getOutputFile().length())
-                .body(resource);
+        hf.setInput(file.getInputStream());
+
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + filename.substring(0, filename.indexOf(".huff")));
+        response.setHeader(HttpHeaders.CONNECTION, "Keep-Alive");
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        hf.setOutput(response.getOutputStream());
+        hf.decompressFile();
+        response.flushBuffer();
     }
 
 }

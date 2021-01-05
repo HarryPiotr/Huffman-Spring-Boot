@@ -24,9 +24,7 @@ public class HuffmanTextCodingForm {
     private String codingTable;
     private String uncompressedText;
     private String compressedText;
-    private int uncompressedTextLength;
     private int codingTableLength;
-    private int compressedTextLength;
     private String compressionRatio = new DecimalFormat("#0.0000").format(0.0);
     private ArrayList<Node> nodes;
     private ReplacementNode treeRoot;
@@ -74,8 +72,6 @@ public class HuffmanTextCodingForm {
         }
 
         uncompressedText = ut.toString();
-        uncompressedTextLength = uncompressedText.length() / 8;
-
     }
 
     public void generateTreeGraph() {
@@ -128,60 +124,24 @@ public class HuffmanTextCodingForm {
         completeText.append(rawText);
 
         compressedText = completeText.toString();
-        compressedTextLength = compressedText.length() * 2;
-
     }
 
     public String getInputModel() {
         return inputModel;
     }
 
-    public void setInputModel(String inputModel) {
-        this.inputModel = inputModel;
-    }
-
     public String getCodingTable() {
         return codingTable;
-    }
-
-    public void setCodingTable(String codingTable) {
-        this.codingTable = codingTable;
     }
 
     public String getCompressedText() {
         return compressedText;
     }
 
-    public void setCompressedText(String compressedText) {
-        this.compressedText = compressedText;
-    }
-
-    public String getUncompressedText() {
-        return uncompressedText;
-    }
-
-    public void setUncompressedText(String uncompressedText) {
-        this.uncompressedText = uncompressedText;
-    }
-
-    public int getUncompressedTextLength() {
-        return uncompressedTextLength;
-    }
-
-    public void setUncompressedTextLength(int uncompressedTextLength) {
-        this.uncompressedTextLength = uncompressedTextLength;
-    }
-
-    public int getCompressedTextLength() {
-        return compressedTextLength;
-    }
-
-    public void setCompressedTextLength(int compressedTextLength) {
-        this.compressedTextLength = compressedTextLength;
-    }
 
     public String getCompressionRatio() {
-        if(uncompressedTextLength != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) getCompressedTextLength() / (double) (inputText.length() * 2));
+        if(uncompressedText.length() != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) compressedText.length() / (double) (inputText.length()));
+        System.out.println("Przed: " + inputText.length() + ", Po: " + compressedText.length());
         return compressionRatio;
     }
 

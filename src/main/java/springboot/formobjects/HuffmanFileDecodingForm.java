@@ -1,39 +1,49 @@
 package springboot.formobjects;
 
 import tools.huffman.file.*;
-import java.io.File;
+
+import javax.servlet.ServletOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 public class HuffmanFileDecodingForm {
 
-    private File file;
-    private File outputFile;
+    private InputStream input;
+    private ServletOutputStream output;
     private ArrayList<BinaryNode> nodes;
     private ReplacementBinaryNode treeRoot;
+    private int addedBits;
+    private int modelLines;
+    private int occurenceBytes;
 
 
-    public void decompressFile() {
+    public void decompressFile() throws IOException {
 
-        nodes = FileTools.rebuildTree(file);
+        int res[] = FileTools.readMetaData(input);
+        addedBits = res[0];
+        modelLines = res[1];
+        occurenceBytes = res[2];
+
+        nodes = FileTools.rebuildTree(input, modelLines, occurenceBytes);
         treeRoot = FileTools.buildTreeBinary(nodes);
-        FileTools.createCodingSequencesBinary(treeRoot, "");
-        outputFile = FileTools.decodeFile(file, treeRoot);
+        FileTools.decodeFile(input, output, treeRoot, addedBits);
 
     }
 
-    public File getFile() {
-        return file;
+    public InputStream getInput() {
+        return input;
     }
 
-    public void setFile(File file) {
-        this.file = file;
+    public void setInput(InputStream input) {
+        this.input = input;
     }
 
-    public File getOutputFile() {
-        return outputFile;
+    public ServletOutputStream getOutput() {
+        return output;
     }
 
-    public void setOutputFile(File outputFile) {
-        this.outputFile = outputFile;
+    public void setOutput(ServletOutputStream output) {
+        this.output = output;
     }
 }

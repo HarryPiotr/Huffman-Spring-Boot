@@ -98,7 +98,6 @@ public class HuffmanTextDecodingForm {
 
     public void decodeText() {
 
-        System.out.println(codedText);
         //Odkodowanie Base64
         byte[] codedBytes = Base64.getDecoder().decode(codedText);
 

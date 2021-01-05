@@ -21,10 +21,10 @@
             <label>Tekst:</label>
             <textarea class="full-text-area" th:field="*{inputText}" th:rows="10"/>
             <br/><br/>
-            <input type="submit" ajax="false" th:value="Kompresuj"/>
+            <button type="submit" ajax="false">Kompresuj</button>
         </div>
         <div class="row">
-            <div class="col-6 close-left" >
+            <div class="col-6 close-left">
                 <label>Model źródła danych:</label>
                 <textarea class="half-text-area" th:text="*{inputModel}"
                           readonly="true"
@@ -37,20 +37,27 @@
                           rows="20"/>
             </div>
         </div>
-<!--        <div class="row">-->
-<!--            <label>Tekst binarnie przed kompresją (<span th:text="*{uncompressedTextLength}"/>B):</label>-->
-<!--            <textarea class="full-text-area small" th:text="*{uncompressedText}" readonly="true"-->
-<!--                      rows="10"/>-->
-<!--        </div>-->
         <div class="row">
             <label>Drzewo Huffmana:</label>
             <br/>
-            <img style="width: 100%" th:src="*{'data:image/png;base64,'+treeGraph}" alt="Tree Graph" >
+            <img style="width: 100%" th:src="*{'data:image/png;base64,'+treeGraph}" alt="Tree Graph">
         </div>
         <div class="row">
-            <label>Tekst po kompresji (<span th:text="*{compressedTextLength}"/>B):</label>
-            <textarea class="full-text-area small" th:text="*{compressedText}" readonly="true"
-                      rows="10" />
+            <label>Tekst po kompresji (<span th:text="*{compressedText.length()}"/> znaków):</label>
+        </div>
+        <div class="row">
+            <textarea id="compressedTextArea" class="full-text-area small" th:text="*{compressedText}" readonly="true"
+                      rows="10"/>
+        </div>
+        <div class="row">
+            <script>
+                function copyText() {
+                    var ta = document.getElementById("compressedTextArea");
+                    ta.select();
+                    document.execCommand("copy");
+                }
+            </script>
+            <button onclick="copyText()">Kopiuj do schowka</button>
         </div>
         <div class="row bottom">
             <label>Współczynnik kompresji: <b><span th:text="*{compressionRatio}"/></b></label>
