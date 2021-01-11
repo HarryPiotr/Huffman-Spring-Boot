@@ -3,16 +3,15 @@ package springboot.formobjects;
 import com.mxgraph.layout.mxCompactTreeLayout;
 import com.mxgraph.layout.mxIGraphLayout;
 import com.mxgraph.util.mxCellRenderer;
+import javafx.util.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
 import tools.BinaryTreeEdge;
 import tools.huffman.text.*;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -22,32 +21,48 @@ public class HuffmanTextCodingForm {
     private String inputText;
     private String inputModel;
     private String codingTable;
-    private String uncompressedText;
     private String compressedText;
-    private int codingTableLength;
     private String compressionRatio = new DecimalFormat("#0.0000").format(0.0);
     private ArrayList<Node> nodes;
     private ReplacementNode treeRoot;
     private String treeGraph;
-
-    public String getInputText() {
-        return inputText;
-    }
-
-    public void setInputText(String inputText) {
-        this.inputText = inputText;
-    }
+    private int wordLength;
+    private ArrayList<String> entropyReport = new ArrayList<>();
 
     public void generateModel() {
 
-        nodes = TextTools.countSymbols(inputText);
-        TextTools.sortNodeList(nodes);
+        //Automatyczny dobór długości słowa
+        if(wordLength == 0) {
+            ArrayList<Pair<Integer, Double>> results = new ArrayList<>();
+            for(int i = 1; i <= 4; i++) {
+                if(inputText.length() < i) break;
+                results.add(new Pair<>(i, TextTools.countSymbols(inputText, i).getValue()));
+            }
+            wordLength = 1;
+            double minEnt = results.get(0).getValue();
+            for(Pair<Integer, Double> p : results) {
+                if(p.getValue() < minEnt) {
+                    minEnt = p.getValue();
+                    wordLength = p.getKey();
+                }
+                entropyReport.add("Dla l=" + p.getKey() + " entriopia H=" + new DecimalFormat("#0.0000").format(p.getValue()) + System.lineSeparator());
+            }
+            Pair<ArrayList<Node>, Double> resultPair = TextTools.countSymbols(inputText, wordLength);
+            nodes = resultPair.getKey();
+        }
+        else {
+            Pair<ArrayList<Node>, Double> resultPair = TextTools.countSymbols(inputText, wordLength);
+            nodes = resultPair.getKey();
+            entropyReport.add("Dla l=" + wordLength + " entriopia H=" + new DecimalFormat("#0.0000").format(resultPair.getValue()) + System.lineSeparator());
+        }
+
+        Pair<ArrayList<Node>, Double> resultPair = TextTools.countSymbols(inputText, wordLength);
+        nodes = resultPair.getKey();
 
         StringBuilder im = new StringBuilder();
 
         for(Node n : nodes) {
-            if(n.getIsWhiteSpace()) im.append(n.getWhiteSpace());
-            else im.append(n.getSymbol());
+            im.append(n.getPrettySymbol());
             im.append(":");
             im.append(n.getOccurrences());
             im.append(System.lineSeparator());
@@ -55,43 +70,6 @@ public class HuffmanTextCodingForm {
 
         inputModel = im.toString();
 
-    }
-
-    public void generateUncompressedText() {
-
-        StringBuilder ut = new StringBuilder();
-
-        for(int i = 0; i < inputText.length(); i++) {
-
-            StringBuilder s = new StringBuilder(Integer.toBinaryString(inputText.charAt(i)));
-            while(s.length() < 16) {
-                s.insert(0, '0');
-            }
-            ut.append(s);
-
-        }
-
-        uncompressedText = ut.toString();
-    }
-
-    public void generateTreeGraph() {
-
-        treeRoot = TextTools.buildTree(nodes);
-        Graph<String, BinaryTreeEdge> g = TextTools.generateTreeGraph(treeRoot);
-
-        JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<>(g);
-        mxIGraphLayout layout = new mxCompactTreeLayout(graphAdapter, false, false);
-        layout.execute(graphAdapter.getDefaultParent());
-
-        BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 2, Color.WHITE, true, null);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try {
-            ImageIO.write(image, "PNG", os);
-        }
-        catch(IOException e) {
-            e.printStackTrace();
-        }
-        this.treeGraph = Base64.getEncoder().encodeToString(os.toByteArray());
     }
 
     public void generateCodingTable() {
@@ -102,29 +80,54 @@ public class HuffmanTextCodingForm {
 
     }
 
-    public int getCodingTableLength() {
-        if(codingTable != null) codingTableLength = codingTable.length() * 2;
-        return codingTableLength;
+    public void generateTreeGraph() throws IOException {
+
+        treeRoot = TextTools.buildTree(nodes);
+        Graph<String, BinaryTreeEdge> g = TextTools.generateTreeGraph(treeRoot);
+
+        JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<>(g);
+        mxIGraphLayout layout = new mxCompactTreeLayout(graphAdapter, false, false);
+        layout.execute(graphAdapter.getDefaultParent());
+        BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 2, Color.WHITE, true, null);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        ImageIO.write(image, "PNG", os);
+
+        this.treeGraph = Base64.getEncoder().encodeToString(os.toByteArray());
     }
 
     public void generateCompressedText() {
 
-        StringBuilder completeText = new StringBuilder();
+        StringBuilder output = new StringBuilder();
         StringBuilder modelCopy = new StringBuilder();
-        String rawText = TextTools.encodeText(nodes, inputText);
+        Pair<String, Integer> compressionResult = TextTools.encodeText(nodes, inputText, wordLength);
 
+        String rawText = compressionResult.getKey();
+
+        //Metadane
+        output.append((char)(compressionResult.getValue().longValue() + 64));
+        output.append((char)(1 + 64));
+        output.append("[");
+        output.append(nodes.size());
+        output.append("]");
+
+        //Model
         for(Node n : nodes) {
-            if(n.getIsWhiteSpace()) modelCopy.append(n.getWhiteSpace());
-            else modelCopy.append(n.getSymbol());
-            modelCopy.append(n.getOccurrences());
-            modelCopy.append(";");
+            output.append(n.getPrettySymbol());
+            output.append(' ');
+            output.append(n.getOccurrences());
+            output.append(";");
         }
 
-        completeText.append(modelCopy);
-        completeText.append(rawText);
+        output.append(rawText);
 
-        compressedText = completeText.toString();
+        compressedText = output.toString();
     }
+
+    public String getInputText() {
+        return inputText;
+    }
+
+    public void setInputText(String inputText) { this.inputText = inputText; }
 
     public String getInputModel() {
         return inputModel;
@@ -138,15 +141,18 @@ public class HuffmanTextCodingForm {
         return compressedText;
     }
 
+    public int getWordLength() { return wordLength; }
+
+    public void setWordLength(int wordLength) { this.wordLength = wordLength; }
+    public void setWordLength(String wordLength) { this.wordLength = Integer.valueOf(wordLength); }
 
     public String getCompressionRatio() {
-        if(uncompressedText.length() != 0) compressionRatio = new DecimalFormat("#0.0000").format((double) compressedText.length() / (double) (inputText.length()));
-        System.out.println("Przed: " + inputText.length() + ", Po: " + compressedText.length());
+        compressionRatio = new DecimalFormat("#0.0000").format((double) compressedText.length() / (double) (inputText.length()));
         return compressionRatio;
     }
 
-    public String getTreeGraph() {
-        return treeGraph;
-    }
+    public ArrayList<String> getEntropyReport() { return entropyReport; }
+
+    public String getTreeGraph() { return treeGraph; }
 
 }

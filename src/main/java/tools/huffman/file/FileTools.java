@@ -192,8 +192,6 @@ public class FileTools {
         ArrayList<BinaryNode> nodes = new ArrayList<>();
         byte[] b = {0};
 
-        System.out.println("[" + new Date() + "] Tablicę zakodowano " + occBytes + " bajtami liczbowymi");
-
         byte[] line = new byte[1 + occBytes + 1];
         for (int i = 0; i < lineNum; i++) {
             is.read(line);
@@ -207,10 +205,6 @@ public class FileTools {
         }
 
         sortBinaryNodeList(nodes);
-
-        System.out.println("[" + new Date() + "] Konkatenacja odczytanego modelu:");
-        for(BinaryNode bn : nodes) System.out.println("[Node] (" + (bn.getSymbol() & 0xFF) + ") - #" + bn.getOccurrences());
-
         return nodes;
     }
 

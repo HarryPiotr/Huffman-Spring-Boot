@@ -1,29 +1,50 @@
 package tools.huffman.text;
 
+import com.google.common.base.Splitter;
+import javafx.util.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.SimpleGraph;
 import tools.BinaryTreeEdge;
+import tools.huffman.file.BinaryNode;
+import tools.huffman.file.ReplacementBinaryNode;
+
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 public class TextTools {
 
-    public static ArrayList<Node> countSymbols(String s) {
-        //Tutaj zaimplementować czytanie tekstu char po charze i zapisywanie informacji o liczbie wystąpień do listy
+    public static Pair<ArrayList<Node>, Double> countSymbols(String s, int l) {
 
         ArrayList<Node> nodes = new ArrayList<>();
 
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            Node n = findNode(nodes, c);
-            if (n == null) {
-                Node newNode = new Node(c);
-                nodes.add(newNode);
-            } else n.incrementOccurrences();
+        List<String> tokens = Splitter.fixedLength(l).splitToList(s);
+
+        for(String st : tokens) {
+            Node n = findNode(nodes, st);
+            if(n == null) {
+                n = new Node(st);
+                nodes.add(n);
+            }
+            else n.incrementOccurrences();
         }
 
-        return nodes;
+        sortNodeList(nodes);
+        return new Pair<>(nodes, calculateEntropy(nodes, s.length(), l));
+    }
+
+    public static double calculateEntropy(ArrayList<Node> nodes, int lng, int l) {
+
+        double p_sum = 0.0;
+        double result = 0.0;
+        for(Node n : nodes) {
+            double p = ((double) n.getOccurrences()) / (Math.ceil((double) lng) / (double) l);
+            p_sum += p;
+            result += p * Math.log(p) / Math.log(2);
+        }
+        result *= -1;
+        return result;
     }
 
     public static void sortNodeList(ArrayList<Node> nodes) {
@@ -35,14 +56,22 @@ public class TextTools {
         //Tutaj zaimplementować budowanie drzewa Huffmana z obiektów typu Node i ReplacementNode
         int numberOfReplacements = 0;
         ArrayList<Node> nodesCopy = new ArrayList<>(nodes);
+        if (nodesCopy.size() == 1) {
+            ReplacementNode r = new ReplacementNode(nodesCopy.get(0), nodesCopy.get(0), "1");
+            return r;
+        }
+        if (nodesCopy.size() == 0) {
+            ReplacementNode r = new ReplacementNode(new Node("\0"), new Node("\0"), ("1"));
+            return r;
+        }
         while (nodesCopy.size() != 1) {
+            nodesCopy.sort(Node.NodeOccurancesComparator);
             Node n1 = nodesCopy.get(0);
             Node n2 = nodesCopy.get(1);
-            ReplacementNode r = new ReplacementNode(n1, n2, (char) (++numberOfReplacements));
+            ReplacementNode r = new ReplacementNode(n1, n2, "" + ++numberOfReplacements);
             nodesCopy.remove(n1);
             nodesCopy.remove(n2);
             nodesCopy.add(r);
-            nodesCopy.sort(Node.NodeOccurancesComparator);
         }
         return (ReplacementNode) nodesCopy.get(0);
     }
@@ -57,16 +86,16 @@ public class TextTools {
     public static void checkBranch(Node root, Graph<String, BinaryTreeEdge> g, boolean dir) {
 
         if (root instanceof ReplacementNode) {
-            g.addVertex("#" + (int) root.getSymbol());
+            g.addVertex("#" + root.getSymbol());
             if (root.getParent() != null)
-                g.addEdge("#" + (int) root.getParent().getSymbol(), "#" + (int) root.getSymbol(), new BinaryTreeEdge(dir));
+                g.addEdge("#" + root.getParent().getSymbol(), "#" + root.getSymbol(), new BinaryTreeEdge(dir));
             checkBranch(((ReplacementNode) root).getLeft(), g, true);
             checkBranch(((ReplacementNode) root).getRight(), g, false);
         } else {
-            String vertexName = (!root.getIsWhiteSpace() ? "" + root.getSymbol() : root.getWhiteSpace());
+            String vertexName = root.getPrettySymbol();
             g.addVertex(vertexName);
             if (root.getParent() != null)
-                g.addEdge("#" + (int) root.getParent().getSymbol(), vertexName, new BinaryTreeEdge(dir));
+                g.addEdge("#" + root.getParent().getSymbol(), vertexName, new BinaryTreeEdge(dir));
         }
     }
 
@@ -79,16 +108,18 @@ public class TextTools {
         }
     }
 
-    public static String encodeText(ArrayList<Node> nodes, String s) {
+    public static Pair<String, Integer> encodeText(ArrayList<Node> nodes, String s, int l) {
         ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
         flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
+
+        List<String> tokens = Splitter.fixedLength(l).splitToList(s);
 
         StringBuilder buffer = new StringBuilder();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        for (int i = 0; i < s.length(); i++) {
+        for (String st : tokens) {
 
-            Node n = findNode(nodes, s.charAt(i));
+            Node n = findNode(nodes, st);
             buffer.append(n.getCodingSequence());
             while (buffer.length() >= 8) {
                 String seq = buffer.substring(0, 8);
@@ -104,13 +135,10 @@ public class TextTools {
             String seq = buffer.substring(0, 8);
             byte nb = (byte) Integer.parseInt(seq, 2);
             out.write(nb);
-            out.write((byte) (addedBits + 64));
-            System.out.println("Dopisano " + addedBits + " bitów");
         }
-        else out.write((byte) (addedBits + 64));
 
         byte[] outBytes = out.toByteArray();
-        return Base64.getEncoder().encodeToString(outBytes);
+        return new Pair<>(Base64.getEncoder().encodeToString(outBytes), addedBits);
 
     }
 
@@ -119,8 +147,7 @@ public class TextTools {
         StringBuilder ct = new StringBuilder();
 
         for (Node n : nodes) {
-            if(n.getIsWhiteSpace()) ct.append(n.getWhiteSpace());
-            else ct.append(n.getSymbol());
+            ct.append(n.getPrettySymbol());
             ct.append(":");
             ct.append(n.getCodingSequence());
             ct.append(System.lineSeparator());
@@ -132,24 +159,20 @@ public class TextTools {
     public static ReplacementNode rebuildTree(ArrayList<Node> inputModel) {
 
         ArrayList<Node> codingNodes = new ArrayList<>(inputModel);
-        sortNodeList(codingNodes);
         return buildTree(codingNodes);
     }
 
-    public static String decodeText(byte[] input, ReplacementNode root) {
+    public static String decodeText(byte[] input, ReplacementNode root, int addedBits) {
 
         StringBuilder output = new StringBuilder();
         Node n = root;
         int bitLimit = 8;
 
-        int addedBits = (int) (input[input.length - 1] - 64);
+        for (int i = 0; i < input.length; i++) {
 
-        System.out.println("Dopisane bity: " + addedBits);
+            if(i == input.length - 1) bitLimit = 8 - addedBits;
 
-        for (int i = 0; i < input.length - 1; i++) {
             int comparator = 0x80;
-
-            if(i == input.length - 2) bitLimit = 8 - addedBits;
 
             for(int j = 0; j < bitLimit; j++) {
                 if((input[i] & comparator) == 0) n = ((ReplacementNode) n).getLeft();
@@ -164,17 +187,8 @@ public class TextTools {
         return output.toString();
     }
 
-    public static Node findNode(ArrayList<Node> nodes, char c) {
-        for (Node n : nodes) {
-            if (n.getSymbol() == c) return n;
-        }
-        return null;
-    }
-
-    public static Node findNode(ArrayList<Node> nodes, char c, boolean wsp) {
-        for (Node n : nodes) {
-            if (n.getSymbol() == c && n.getIsWhiteSpace()) return n;
-        }
+    public static Node findNode(ArrayList<Node> nodes, String s) {
+        for (Node n : nodes) if (n.getSymbol().equals(s)) return n;
         return null;
     }
 }

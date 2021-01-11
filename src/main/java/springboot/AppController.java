@@ -31,7 +31,7 @@ public class AppController {
     private String appMode;
 
     @Autowired
-    public AppController(Environment environment){
+    public AppController(Environment environment) {
         appMode = environment.getProperty("app-mode");
     }
 
@@ -49,12 +49,11 @@ public class AppController {
 
 
     @PostMapping("/index")
-    public String indexPost(@ModelAttribute HuffmanTextCodingForm hf, Model model) {
+    public String indexPost(@ModelAttribute HuffmanTextCodingForm hf, Model model) throws IOException {
 
         model.addAttribute("huffmanTextCodingForm", hf);
         hf.generateModel();
         hf.generateCodingTable();
-        hf.generateUncompressedText();
         hf.generateCompressedText();
         hf.generateTreeGraph();
         return "index_post";
@@ -67,7 +66,7 @@ public class AppController {
     }
 
     @PostMapping("/text_decompression")
-    public String textDecompressionPost(@ModelAttribute HuffmanTextDecodingForm hf, Model model) {
+    public String textDecompressionPost(@ModelAttribute HuffmanTextDecodingForm hf, Model model) throws IOException {
 
         model.addAttribute("huffmanTextDecodingForm", hf);
         hf.splitInput();

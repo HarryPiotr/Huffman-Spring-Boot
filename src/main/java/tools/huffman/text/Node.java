@@ -6,7 +6,8 @@ public class Node {
 
     private Node parent;
     private long occurrences = 0;
-    private char symbol;
+    private String symbol;
+    private String prettySymbol;
     private String codingSequence;
     private String whiteSpace;
     private boolean isWhiteSpace = false;
@@ -15,33 +16,26 @@ public class Node {
 
         public int compare(Node n1, Node n2) {
             int verdict = n1.compareTo(n2);
-            if(verdict == 0) {
+            if (verdict == 0) {
                 verdict = n1.compareToSymbol(n2);
             }
             return verdict;
         }
     };
 
-    public Node(char c) {
+    public Node(String s) {
         setOccurrences(1);
-        if(c == 10 || c == 13 || c == 32 || c == 9) {
-            isWhiteSpace = true;
-            switch(c) {
-                case 10:
-                    whiteSpace = "NL";
-                    break;
-                case 13:
-                    whiteSpace = "CR";
-                    break;
-                case 32:
-                    whiteSpace = "SP";
-                    break;
-                case 9:
-                    whiteSpace = "HT";
-                    break;
-            }
+        symbol = s;
+        prettySymbol = "";
+        for (char c : s.toCharArray()) {
+            if (c == 10) prettySymbol += "[NL]";
+            else if (c == 13) prettySymbol += "[CR]";
+            else if (c == 32) prettySymbol += "[SP]";
+            else if (c == 9) prettySymbol += "[HT]";
+            else if (c == 91) prettySymbol += "[OB]";
+            else if (c == 93) prettySymbol += "[CB]";
+            else prettySymbol += c;
         }
-        setSymbol(c);
     }
 
     public long getOccurrences() {
@@ -56,11 +50,11 @@ public class Node {
         occurrences++;
     }
 
-    public char getSymbol() {
+    public String getSymbol() {
         return symbol;
     }
 
-    public void setSymbol(char symbol) {
+    public void setSymbol(String symbol) {
         this.symbol = symbol;
     }
 
@@ -80,7 +74,18 @@ public class Node {
     }
 
     public int compareToSymbol(Node n) {
-        return this.symbol < n.symbol ? -1 : this.symbol == n.symbol ? 0 : 1;
+        if(this.symbol.length() != n.symbol.length()) {
+            if(this.symbol.length() < n.symbol.length()) return -1;
+            else return 1;
+        }
+        else {
+            for(int i = 0; i < symbol.length(); i++) {
+                if(this.symbol.charAt(i) < n.symbol.charAt(i)) return -1;
+                else if (this.symbol.charAt(i) > n.symbol.charAt(i)) return 1;
+                else continue;
+            }
+        }
+        return 0;
     }
 
     public Node getParent() {
@@ -91,10 +96,6 @@ public class Node {
         this.parent = parent;
     }
 
-    public String print(String prefix) {
-        return prefix + "" + this.getSymbol() + "(" + this.getOccurrences() + ")\n";
-    }
-
     public String getCodingSequence() {
         return codingSequence;
     }
@@ -103,11 +104,19 @@ public class Node {
         this.codingSequence = codingSequence;
     }
 
-    public void setIsWhiteSpace(Boolean isWhiteSpace) { this.isWhiteSpace = isWhiteSpace; }
+    public void setIsWhiteSpace(Boolean isWhiteSpace) {
+        this.isWhiteSpace = isWhiteSpace;
+    }
 
-    public boolean getIsWhiteSpace() { return isWhiteSpace; }
+    public boolean getIsWhiteSpace() {
+        return isWhiteSpace;
+    }
 
     public String getWhiteSpace() {
         return whiteSpace;
+    }
+
+    public String getPrettySymbol() {
+        return prettySymbol;
     }
 }

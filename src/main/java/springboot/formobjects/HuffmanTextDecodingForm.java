@@ -7,6 +7,7 @@ import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
 import tools.BinaryTreeEdge;
 import tools.huffman.text.*;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -25,75 +26,69 @@ public class HuffmanTextDecodingForm {
     private ReplacementNode treeRoot;
     private String treeGraph;
     private String codingTable;
+    private int addedBits;
+    private int modelSize;
+    private int wordLength;
 
     public void splitInput() {
 
         StringBuilder sb = new StringBuilder(inputText);
         StringBuilder msb = new StringBuilder();
-        while(true) {
-            try {
-                String line = sb.substring(0, sb.indexOf(";"));
-                if(line.length() == 0) line = sb.substring(0, sb.indexOf(";", 1));
 
-                if(line.matches("[^;][0-9]+")) {
-                    Node n = new Node(line.charAt(0));
-                    n.setOccurrences(Integer.valueOf(line.substring(1, sb.indexOf(";"))));
-                    nodes.add(n);
-                    msb.append(line.charAt(0));
-                    msb.append(":");
-                    msb.append(line.substring(1, sb.indexOf(";")));
-                    msb.append("\n");
-                    sb.delete(0, sb.indexOf(";") + 1);
-                }
-                else if(line.matches("(NL|CR|SP|HT)[0-9]+")) {
-                    String weirdCharacter = line.substring(0, 2);
-                    Node n;
-                    switch(weirdCharacter) {
+        //Metadane
+        this.addedBits = sb.charAt(0) - 64;
+        this.wordLength = sb.charAt(1) - 64;
+        this.modelSize = Integer.parseInt(sb.substring(3, sb.indexOf("]")));
+        sb.delete(0, sb.indexOf("]") + 1);
+
+        for(int i = 0; i < modelSize; i++) {
+
+            String line = sb.substring(0, sb.indexOf(";", sb.indexOf(" ")));
+            sb.delete(0, sb.indexOf(";", sb.indexOf(" ")) + 1);
+
+            String symbol = line.substring(0, line.indexOf(" "));
+            int occ = Integer.valueOf(line.substring(line.indexOf(" ") + 1));
+
+            msb.append(symbol);
+            msb.append(":");
+            msb.append(occ);
+            msb.append(System.lineSeparator());
+
+            String parsedSymbol = "";
+            for(int j = 0; j < symbol.length(); j++) {
+                if(symbol.charAt(j) == '[') {
+                    String susSequence = "" + symbol.charAt(j + 1) + symbol.charAt(j + 2);
+                    switch(susSequence) {
                         case "NL":
-                            n = new Node((char)10);
+                            parsedSymbol += (char)10;
                             break;
                         case "CR":
-                            n = new Node((char)13);
+                            parsedSymbol += (char)13;
                             break;
                         case "SP":
-                            n = new Node((char)32);
+                            parsedSymbol += (char)32;
                             break;
                         case "HT":
-                            n = new Node((char)9);
+                            parsedSymbol += (char)9;
                             break;
-                        default:
-                            n = new Node('x');
+                        case "OB":
+                            parsedSymbol += (char)91;
+                            break;
+                        case "CB":
+                            parsedSymbol += (char)93;
+                            break;
                     }
-                    n.setIsWhiteSpace(true);
-                    n.setOccurrences(Integer.valueOf(line.substring(2, sb.indexOf(";"))));
-                    nodes.add(n);
-                    msb.append(line.substring(0, 2));
-                    msb.append(":");
-                    msb.append(line.substring(2, sb.indexOf(";")));
-                    msb.append("\n");
-                    sb.delete(0, sb.indexOf(";", 1) + 1);
+                    j += 3;
                 }
-                else if(line.matches(";[0-9]+")) {
-                    Node n = new Node(line.charAt(0));
-                    n.setOccurrences(Integer.valueOf(line.substring(1, sb.indexOf(";", 1))));
-                    nodes.add(n);
-                    msb.append(line.charAt(0));
-                    msb.append(":");
-                    msb.append(line.substring(1, sb.indexOf(";", 1)));
-                    msb.append("\n");
-                    sb.delete(0, sb.indexOf(";", 1) + 1);
-                }
-                else {
-                    break;
-                }
+                else parsedSymbol += symbol.charAt(j);
             }
-            catch (StringIndexOutOfBoundsException e) {
-                break;
-            }
+            Node n = new Node(parsedSymbol);
+            n.setOccurrences(occ);
+            nodes.add(n);
         }
 
         inputModelView = msb.toString();
-        codedText = sb.substring(0);
+        codedText = sb.toString();
     }
 
     public void decodeText() {
@@ -104,28 +99,21 @@ public class HuffmanTextDecodingForm {
         this.treeRoot = TextTools.rebuildTree(nodes);
         TextTools.createCodingSequences(treeRoot, "");
         codingTable = TextTools.saveCodingTable(nodes);
-
-        this.outputText = TextTools.decodeText(codedBytes, this.treeRoot);
+        this.outputText = TextTools.decodeText(codedBytes, this.treeRoot, addedBits);
 
     }
 
 
-    public void generateTreeGraph() {
+    public void generateTreeGraph() throws IOException {
 
         Graph<String, BinaryTreeEdge> g = TextTools.generateTreeGraph(treeRoot);
 
         JGraphXAdapter<String, BinaryTreeEdge> graphAdapter = new JGraphXAdapter<>(g);
         mxIGraphLayout layout = new mxCompactTreeLayout(graphAdapter, false, false);
         layout.execute(graphAdapter.getDefaultParent());
-
         BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 2, Color.WHITE, true, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try {
-            ImageIO.write(image, "PNG", os);
-        }
-        catch(IOException e) {
-            e.printStackTrace();
-        }
+        ImageIO.write(image, "PNG", os);
         this.treeGraph = Base64.getEncoder().encodeToString(os.toByteArray());
     }
 
