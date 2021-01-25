@@ -36,8 +36,8 @@ public class HuffmanTextDecodingForm {
         StringBuilder msb = new StringBuilder();
 
         //Metadane
-        this.addedBits = sb.charAt(0) - 64;
-        this.wordLength = sb.charAt(1) - 64;
+        this.addedBits = Integer.parseInt("" + sb.charAt(0));
+        this.wordLength = Integer.parseInt("" + sb.charAt(1));
         this.modelSize = Integer.parseInt(sb.substring(3, sb.indexOf("]")));
         sb.delete(0, sb.indexOf("]") + 1);
 
@@ -86,7 +86,6 @@ public class HuffmanTextDecodingForm {
             n.setOccurrences(occ);
             nodes.add(n);
         }
-
         inputModelView = msb.toString();
         codedText = sb.toString();
     }
@@ -96,7 +95,7 @@ public class HuffmanTextDecodingForm {
         //Odkodowanie Base64
         byte[] codedBytes = Base64.getDecoder().decode(codedText);
 
-        this.treeRoot = TextTools.rebuildTree(nodes);
+        this.treeRoot = TextTools.buildTree(nodes);
         TextTools.createCodingSequences(treeRoot, "");
         codingTable = TextTools.saveCodingTable(nodes);
         this.outputText = TextTools.decodeText(codedBytes, this.treeRoot, addedBits);

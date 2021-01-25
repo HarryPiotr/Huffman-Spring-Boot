@@ -15,8 +15,8 @@
         <li><a class="nav-link" href="file_decompression.html">File Decompression</a></li>
     </ul>
 </nav>
-<form th:action="@{/text_decompression.html}" method="post" th:object="${huffmanTextDecodingForm}">
-    <div class="container" style="margin-top: 50px; margin-bottom: 50px">
+<form th:action="@{/text_decompression.html}" method="post" th:object="${form}">
+    <div class="container" style="margin-top: 50px; margin-bottom: 50px; padding-bottom: 50px">
         <div class="row">
             <label>Tekst:</label>
             <textarea class="form-control border-secondary" th:field="*{inputText}" rows="5"></textarea>

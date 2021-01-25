@@ -1,24 +1,17 @@
 package tools.huffman.text;
 
 import com.google.common.base.Splitter;
-import javafx.util.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.SimpleGraph;
 import tools.BinaryTreeEdge;
-import tools.huffman.file.BinaryNode;
-import tools.huffman.file.ReplacementBinaryNode;
-
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 
 public class TextTools {
 
-    public static Pair<ArrayList<Node>, Double> countSymbols(String s, int l) {
+    public static Map.Entry<ArrayList<Node>, Double> countSymbols(String s, int l) {
 
         ArrayList<Node> nodes = new ArrayList<>();
-
         List<String> tokens = Splitter.fixedLength(l).splitToList(s);
 
         for(String st : tokens) {
@@ -29,40 +22,31 @@ public class TextTools {
             }
             else n.incrementOccurrences();
         }
-
-        sortNodeList(nodes);
-        return new Pair<>(nodes, calculateEntropy(nodes, s.length(), l));
+        nodes.sort(Node.NodeOccurancesComparator);
+        return new AbstractMap.SimpleEntry<>(nodes, calculateEntropy(nodes, s.length(), l));
     }
 
     public static double calculateEntropy(ArrayList<Node> nodes, int lng, int l) {
 
-        double p_sum = 0.0;
         double result = 0.0;
         for(Node n : nodes) {
-            double p = ((double) n.getOccurrences()) / (Math.ceil((double) lng) / (double) l);
-            p_sum += p;
+            double p = ((double) n.getOccurrences()) / (Math.ceil(((double) lng) / (double) l));
             result += p * Math.log(p) / Math.log(2);
         }
         result *= -1;
         return result;
     }
 
-    public static void sortNodeList(ArrayList<Node> nodes) {
-        //Tutaj zaimplementować dowolny algorytm sortowania listy pod względem ilości wystąpień
-        nodes.sort(Node.NodeOccurancesComparator);
-    }
-
     public static ReplacementNode buildTree(ArrayList<Node> nodes) {
-        //Tutaj zaimplementować budowanie drzewa Huffmana z obiektów typu Node i ReplacementNode
+
         int numberOfReplacements = 0;
         ArrayList<Node> nodesCopy = new ArrayList<>(nodes);
+
         if (nodesCopy.size() == 1) {
-            ReplacementNode r = new ReplacementNode(nodesCopy.get(0), nodesCopy.get(0), "1");
-            return r;
+            return new ReplacementNode(nodesCopy.get(0), nodesCopy.get(0), "1");
         }
         if (nodesCopy.size() == 0) {
-            ReplacementNode r = new ReplacementNode(new Node("\0"), new Node("\0"), ("1"));
-            return r;
+            return new ReplacementNode(new Node("\0"), new Node("\0"), "1");
         }
         while (nodesCopy.size() != 1) {
             nodesCopy.sort(Node.NodeOccurancesComparator);
@@ -85,21 +69,18 @@ public class TextTools {
 
     public static void checkBranch(Node root, Graph<String, BinaryTreeEdge> g, boolean dir) {
 
-        if (root instanceof ReplacementNode) {
-            g.addVertex("#" + root.getSymbol());
-            if (root.getParent() != null)
-                g.addEdge("#" + root.getParent().getSymbol(), "#" + root.getSymbol(), new BinaryTreeEdge(dir));
+        g.addVertex(root.getPrettySymbol());
+        if(root.getParent() != null) {
+            g.addEdge(root.getParent().getPrettySymbol(), root.getPrettySymbol(), new BinaryTreeEdge(dir));
+        }
+        if(root instanceof ReplacementNode) {
             checkBranch(((ReplacementNode) root).getLeft(), g, true);
             checkBranch(((ReplacementNode) root).getRight(), g, false);
-        } else {
-            String vertexName = root.getPrettySymbol();
-            g.addVertex(vertexName);
-            if (root.getParent() != null)
-                g.addEdge("#" + root.getParent().getSymbol(), vertexName, new BinaryTreeEdge(dir));
         }
     }
 
     public static void createCodingSequences(Node node, String prefix) {
+
         if (!(node instanceof ReplacementNode)) node.setCodingSequence(prefix);
         else {
             ReplacementNode rnode = (ReplacementNode) node;
@@ -108,14 +89,14 @@ public class TextTools {
         }
     }
 
-    public static Pair<String, Integer> encodeText(ArrayList<Node> nodes, String s, int l) {
+    public static Map.Entry<String, Integer> encodeText(ArrayList<Node> nodes, String s, int l) {
+
         ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
-        flippedNodes.sort(Node.NodeOccurancesComparatorDescending);
-
-        List<String> tokens = Splitter.fixedLength(l).splitToList(s);
-
+        Collections.reverse(flippedNodes);
         StringBuilder buffer = new StringBuilder();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        List<String> tokens = Splitter.fixedLength(l).splitToList(s);
 
         for (String st : tokens) {
 
@@ -136,10 +117,40 @@ public class TextTools {
             byte nb = (byte) Integer.parseInt(seq, 2);
             out.write(nb);
         }
-
         byte[] outBytes = out.toByteArray();
-        return new Pair<>(Base64.getEncoder().encodeToString(outBytes), addedBits);
+        return new AbstractMap.SimpleEntry<>(Base64.getEncoder().encodeToString(outBytes), addedBits);
+    }
 
+    public static Map.Entry<byte[], Integer> encodeTextReturnCodewords(ArrayList<Node> nodes, String s, int l) {
+
+        ArrayList<Node> flippedNodes = new ArrayList<>(nodes);
+        Collections.reverse(flippedNodes);
+        StringBuilder buffer = new StringBuilder();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        List<String> tokens = Splitter.fixedLength(l).splitToList(s);
+
+        for (String st : tokens) {
+
+            Node n = findNode(nodes, st);
+            buffer.append(n.getCodingSequence());
+            while (buffer.length() >= 8) {
+                String seq = buffer.substring(0, 8);
+                buffer.delete(0, 8);
+                byte nb = (byte) Integer.parseInt(seq, 2);
+                out.write(nb);
+            }
+        }
+        int addedBits = 0;
+        if (buffer.length() > 0) {
+            addedBits = 8 - buffer.length();
+            while (buffer.length() < 8) buffer.append("0");
+            String seq = buffer.substring(0, 8);
+            byte nb = (byte) Integer.parseInt(seq, 2);
+            out.write(nb);
+        }
+        byte[] outBytes = out.toByteArray();
+        return new AbstractMap.SimpleEntry<>(outBytes, addedBits);
     }
 
     public static String saveCodingTable(ArrayList<Node> nodes) {
@@ -154,12 +165,6 @@ public class TextTools {
         }
 
         return ct.toString();
-    }
-
-    public static ReplacementNode rebuildTree(ArrayList<Node> inputModel) {
-
-        ArrayList<Node> codingNodes = new ArrayList<>(inputModel);
-        return buildTree(codingNodes);
     }
 
     public static String decodeText(byte[] input, ReplacementNode root, int addedBits) {

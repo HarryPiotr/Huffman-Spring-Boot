@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE HTML>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Text Compression</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -15,43 +15,34 @@
         <li><a class="nav-link" href="file_decompression.html">File Decompression</a></li>
     </ul>
 </nav>
-<form th:action="@{/index}" method="post" th:object="${huffmanTextCodingForm}">
+<form th:action="@{/text_compression}" method="post" th:object="${form}">
     <div class="container" style="margin-top: 50px; margin-bottom: 50px">
         <div class="row">
             <label>Tekst:</label>
-            <textarea id="compressTextArea" class="form-control" th:field="*{inputText}" rows="5"
-                      onkeyup="updateForm()"></textarea>
+            <textarea id="compressTextArea" class="form-control border-secondary" th:field="*{inputText}" rows="5" onkeyup="updateForm()"></textarea>
         </div>
         <div class="row">
             <div class="form-group">
                 <label>Długość słowa:</label>
                 <div class="radio">
-                    <label><input id="op1" type="radio" name="l" value="0" th:field="*{wordLength}">
-                        Automatyczna</label>
+                    <label><input id="op1" type="radio" name="l" value="0" th:field="*{wordLength}" disabled> Automatyczna</label>
                 </div>
                 <div class="radio">
-                    <label><input id="op2" type="radio" name="l" value="1" th:field="*{wordLength}"> 1 znak</label>
+                    <label><input id="op2" type="radio" name="l" value="1" th:field="*{wordLength}" disabled> 1 znak</label>
                 </div>
                 <div class="radio">
-                    <label><input id="op3" type="radio" name="l" value="2" th:field="*{wordLength}"> 2 znaki</label>
+                    <label><input id="op3" type="radio" name="l" value="2" th:field="*{wordLength}" disabled> 2 znaki</label>
                 </div>
                 <div class="radio">
-                    <label><input id="op4" type="radio" name="l" value="3" th:field="*{wordLength}"> 3 znaki</label>
+                    <label><input id="op4" type="radio" name="l" value="3" th:field="*{wordLength}" disabled> 3 znaki</label>
                 </div>
                 <div class="radio">
-                    <label><input id="op5" type="radio" name="l" value="4" th:field="*{wordLength}"> 4 znaki</label>
+                    <label><input id="op5" type="radio" name="l" value="4" th:field="*{wordLength}" disabled> 4 znaki</label>
                 </div>
             </div>
         </div>
-        <div class="row form-group">
-            <button id="sub-btn" class="btn btn-outline-secondary" type="submit">Kompresuj</button>
-        </div>
-        <div class="row border border-secondary rounded-sm">
-            <th:block th:each="user : *{entropyReport}">
-                <div class="col-12">
-                    <span th:text="${user}"></span>
-                </div>
-            </th:block>
+        <div class="row">
+            <button id="sub-btn" class="btn btn-outline-secondary" type="submit" disabled>Kompresuj</button>
         </div>
         <script>
             function updateForm() {
@@ -94,46 +85,6 @@
                 }
             }
         </script>
-        <div class="row">
-            <div class="col-6 close-left">
-                <label>Model źródła danych:</label>
-                <textarea class="form-control half-text-area" th:text="*{inputModel}"
-                          readonly="true"
-                          rows="20"/>
-            </div>
-            <div class="col-6 close-right">
-                <label>Tabela kodowania:</label>
-                <textarea class="form-control half-text-area" th:text="*{codingTable}"
-                          readonly="true"
-                          rows="20"/>
-            </div>
-        </div>
-        <div class="row">
-            <label>Drzewo Huffmana:</label>
-            <br/>
-            <img style="width: 100%" th:src="*{'data:image/png;base64,'+treeGraph}" alt="Tree Graph">
-        </div>
-        <div class="row">
-            <label>Tekst po kompresji (<span th:text="*{compressedText.length()}"/> znaków):</label>
-        </div>
-        <div class="row input-group">
-            <textarea id="compressedTextArea" class="form-control full-text-area small" th:text="*{compressedText}" readonly="true"
-                      rows="10"/>
-            <button class="input-group-addon btn btn-outline-secondary" onclick="copyText()">Kopiuj do schowka</button>
-        </div>
-        <div class="row">
-
-        </div>
-        <script>
-            function copyText() {
-                var ta = document.getElementById("compressedTextArea");
-                ta.select();
-                document.execCommand("copy");
-            }
-        </script>
-        <div class="row">
-            <label>Współczynnik kompresji: <b><span th:text="*{compressionRatio}"/></b></label>
-        </div>
     </div>
 </form>
 <footer class="navbar fixed-bottom navbar-dark bg-dark footer-dark">
@@ -141,5 +92,6 @@
         <a href="https://github.com/HarryPiotr"> Piotr Anuśkiewicz</a>, I7G2S1, Wojskowa Akademia Techniczna
     </div>
 </footer>
+</div>
 </body>
 </html>

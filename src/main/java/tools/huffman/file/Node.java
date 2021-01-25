@@ -2,18 +2,18 @@ package tools.huffman.file;
 
 import java.util.Comparator;
 
-public class BinaryNode {
+public class Node {
 
-    private BinaryNode parent;
+    private Node parent;
     private long occurrences = 0;
     private byte symbol;
     private String codingSequence;
     private String whiteSpace;
     private boolean isWhiteSpace = false;
 
-    public static Comparator<BinaryNode> BinaryNodeOccurancesComparator = new Comparator<BinaryNode>() {
+    public static Comparator<Node> NodeOccurancesComparator = new Comparator<Node>() {
 
-        public int compare(BinaryNode n1, BinaryNode n2) {
+        public int compare(Node n1, Node n2) {
             int verdict = n1.compareTo(n2);
             if (verdict == 0) {
                 verdict = n1.compareToSymbol(n2);
@@ -22,7 +22,7 @@ public class BinaryNode {
         }
     };
 
-    public BinaryNode(byte b) {
+    public Node(byte b) {
         setOccurrences(1);
         if (b == 10 || b == 13 || b == 32 || b == 9) {
             isWhiteSpace = true;
@@ -68,26 +68,26 @@ public class BinaryNode {
         return "" + symbol + " (" + occurrences + ") [" + this.getCodingSequence() + "]";
     }
 
-    public static Comparator<BinaryNode> BinaryNodeOccurancesComparatorDescending = new Comparator<BinaryNode>() {
+    public static Comparator<Node> BinaryNodeOccurancesComparatorDescending = new Comparator<Node>() {
 
-        public int compare(BinaryNode n1, BinaryNode n2) {
+        public int compare(Node n1, Node n2) {
             return n2.compareTo(n1);
         }
     };
 
-    public int compareTo(BinaryNode n) {
+    public int compareTo(Node n) {
         return this.occurrences < n.occurrences ? -1 : this.occurrences == n.occurrences ? 0 : 1;
     }
 
-    public int compareToSymbol(BinaryNode n) {
+    public int compareToSymbol(Node n) {
         return this.symbol < n.symbol ? -1 : this.symbol == n.symbol ? 0 : 1;
     }
 
-    public BinaryNode getParent() {
+    public Node getParent() {
         return parent;
     }
 
-    public void setParent(BinaryNode parent) {
+    public void setParent(Node parent) {
         this.parent = parent;
     }
 

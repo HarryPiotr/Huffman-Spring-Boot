@@ -9,8 +9,6 @@ public class Node {
     private String symbol;
     private String prettySymbol;
     private String codingSequence;
-    private String whiteSpace;
-    private boolean isWhiteSpace = false;
 
     public static Comparator<Node> NodeOccurancesComparator = new Comparator<Node>() {
 
@@ -38,6 +36,25 @@ public class Node {
         }
     }
 
+    public int compareTo(Node n) {
+        return this.occurrences < n.occurrences ? -1 : this.occurrences == n.occurrences ? 0 : 1;
+    }
+
+    public int compareToSymbol(Node n) {
+        if(this.symbol.length() != n.symbol.length()) {
+            if(this.symbol.length() < n.symbol.length()) return -1;
+            else return 1;
+        }
+        else {
+            for(int i = 0; i < symbol.length(); i++) {
+                if(this.symbol.charAt(i) < n.symbol.charAt(i)) return -1;
+                else if (this.symbol.charAt(i) > n.symbol.charAt(i)) return 1;
+                else continue;
+            }
+        }
+        return 0;
+    }
+
     public long getOccurrences() {
         return occurrences;
     }
@@ -62,32 +79,6 @@ public class Node {
         return "" + symbol + " (" + occurrences + ") [" + this.getCodingSequence() + "]";
     }
 
-    public static Comparator<Node> NodeOccurancesComparatorDescending = new Comparator<Node>() {
-
-        public int compare(Node n1, Node n2) {
-            return n1.compareTo(n2);
-        }
-    };
-
-    public int compareTo(Node n) {
-        return this.occurrences < n.occurrences ? -1 : this.occurrences == n.occurrences ? 0 : 1;
-    }
-
-    public int compareToSymbol(Node n) {
-        if(this.symbol.length() != n.symbol.length()) {
-            if(this.symbol.length() < n.symbol.length()) return -1;
-            else return 1;
-        }
-        else {
-            for(int i = 0; i < symbol.length(); i++) {
-                if(this.symbol.charAt(i) < n.symbol.charAt(i)) return -1;
-                else if (this.symbol.charAt(i) > n.symbol.charAt(i)) return 1;
-                else continue;
-            }
-        }
-        return 0;
-    }
-
     public Node getParent() {
         return parent;
     }
@@ -104,19 +95,11 @@ public class Node {
         this.codingSequence = codingSequence;
     }
 
-    public void setIsWhiteSpace(Boolean isWhiteSpace) {
-        this.isWhiteSpace = isWhiteSpace;
-    }
-
-    public boolean getIsWhiteSpace() {
-        return isWhiteSpace;
-    }
-
-    public String getWhiteSpace() {
-        return whiteSpace;
-    }
-
     public String getPrettySymbol() {
         return prettySymbol;
+    }
+
+    public void setPrettySymbol(String prettySymbol) {
+        this.prettySymbol = prettySymbol;
     }
 }
